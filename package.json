@@ -1,0 +1,17 @@
+{
+  "name": "flakey-classic",
+  "module": "main.ts",
+  "type": "module",
+  "devDependencies": {
+    "@types/bun": "latest"
+  },
+  "peerDependencies": {
+    "typescript": "^5.0.0"
+  },
+  "dependencies": {
+    "@types/binary-parser": "^1.5.5",
+    "@types/log4js": "^2.3.5",
+    "binary-parser": "^2.2.1",
+    "log4js": "^6.9.1"
+  }
+}
