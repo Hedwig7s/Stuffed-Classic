@@ -1,4 +1,5 @@
-import Server from 'networking/server';
+import { Context } from 'context';
 
-const server = new Server('localhost',25565);
-server.start();
+const context = new Context();
+
+context.server.start();

@@ -1,32 +1,36 @@
 import type { TCPSocketListener, Socket } from "bun";
 import { ArrayBufferSink } from "bun";
-import type { IConnection, SocketData } from "./types";
-import { Protocol } from "networking/protocol/protocol";
-import { Protocol7 } from "networking/protocol/protocol7";
-const Protocols: Record<number, Protocol> = {
-    7: Protocol7.getInstance()
-};
-function writeFromSink(sink: ArrayBufferSink, socket: Socket<SocketData>) {
+import type { Protocol } from "networking/protocol/protocol";
+import type { Context } from "context";
+
+function writeFromSink(sink: ArrayBufferSink, socket: Socket<any>) {
     const data = sink.flush() as Uint8Array;
     const wrote = socket.write(data);
     if (wrote < data.byteLength) {
         sink.write(data.subarray(wrote));
     }
 }
-class Connection implements IConnection {
+
+export interface SocketData {
+    connection: Connection;
+    faucet: ArrayBufferSink; // In
+    sink: ArrayBufferSink; // Out
+}
+
+export class Connection {
     socket: Socket<SocketData>;
     closed: boolean;
     protocol?: Protocol;
     dataQueue: Uint8Array[];
     processing: boolean;
-    constructor(socket: Socket<SocketData>) {
+    constructor(socket: Socket<SocketData>, private context: Context) {
         this.socket = socket;
         this.closed = false;
         this.dataQueue = [];
         this.processing = false;
     }
 
-    write(data: string | Bun.BufferSource) {
+    write(data: string | ArrayBuffer | Bun.BufferSource) {
         if (this.closed) {
             throw new Error('Connection was closed');
         }
@@ -46,7 +50,7 @@ class Connection implements IConnection {
         this.processing = true;
 
         while (this.dataQueue.length > 0) {
-            const data = this.dataQueue.shift()!;
+            const data = this.dataQueue.shift() ?? new Uint8Array();
             await this.processData(data);
         }
 
@@ -54,7 +58,7 @@ class Connection implements IConnection {
     }
 
     async processData(data: Uint8Array) {
-        if (this.closed) return;
+        if (this.closed || data.length === 0) return;
 
         try {
             const id = data[0];
@@ -63,7 +67,7 @@ class Connection implements IConnection {
                 if (protocolVersion < 2 || protocolVersion > 7) {
                     protocolVersion = 1; // Protocol 1 has no version
                 }
-                this.protocol = Protocols[protocolVersion];
+                this.protocol = this.context.protocols[protocolVersion];
                 if (!this.protocol) {
                     throw new Error(`Protocol ${protocolVersion} not found`);
                 }
@@ -81,7 +85,6 @@ class Connection implements IConnection {
 
             const size = packet.size;
             if (data.byteLength < size) {
-                // If we don't have enough data, put it back in the queue
                 this.dataQueue.unshift(data);
                 return;
             }
@@ -89,7 +92,6 @@ class Connection implements IConnection {
             await packet.receiver(this, data);
 
             if (data.byteLength > size) {
-                // If there's remaining data, queue it for processing
                 this.queueData(data.subarray(size));
             }
         } catch (error) {
@@ -109,16 +111,16 @@ class Connection implements IConnection {
             return;
         }
         try {
-            this.socket.shutdown();
-        } catch { }
+            this.socket.end();
+        } catch {
+            // Ignore errors (if the method fails there isn't much I can do)
+        }
         this.closed = true;
     }
 }
 export class Server {
-    host: string;
-    port: number;
     server?: TCPSocketListener;
-    constructor(host: string, port: number) {
+    constructor(public readonly host: string, public readonly port: number, private context: Context) {
         this.host = host;
         this.port = port;
     }
@@ -129,7 +131,6 @@ export class Server {
             port: this.port,
             socket: {
                 data: (socket, data) => {
-                    console.log(`Received data: ${data}`);
                     if (socket.data.connection) {
                         socket.data.connection.queueData(new Uint8Array(data));
                     }
@@ -146,7 +147,7 @@ export class Server {
                 open: (socket) => {
                     console.log('Socket connected');
                     socket.data = {
-                        connection: new Connection(socket),
+                        connection: new Connection(socket, this.context),
                         faucet: new ArrayBufferSink(),
                         sink: new ArrayBufferSink()
                     };
