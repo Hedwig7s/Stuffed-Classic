@@ -1,18 +1,23 @@
-import type { Context } from "context";
-import Entity from "./entity";
+import { Entity } from "./entity";
+import type { EntityOptions } from "./entity";
 import EntityPosition from "datatypes/entityposition";
 
-export default class Player extends Entity {
+export interface PlayerOptions extends EntityOptions {
+    fancyName: string;
+}
+
+export class Player extends Entity {
     fancyName:string;
-    constructor(id:number, name:string, fancyName:string, context:Context) {
-        super(id, name, context);
+    constructor(options: PlayerOptions) {
+        super(options);
+        const { fancyName } = options;
         this.fancyName = fancyName;
     }
     spawn() {
         super.spawn();
-        
     }
     move(position:EntityPosition) {
         super.move(position);
     }
 }
+export default Player;

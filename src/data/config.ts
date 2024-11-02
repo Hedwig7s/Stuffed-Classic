@@ -20,12 +20,23 @@ function createProxy(config: ConfigData, defaultConfig: ConfigData) {
         }
     });
 }
+
+export interface ConfigOptions {
+    name: string;
+    version: number;
+    defaultConfig: ConfigData;
+}
+
 export class Config {
     private readonly defaultConfig: ConfigData = {};
     private _config: ConfigData = {};
     public config = createProxy(this._config, this.defaultConfig);
     public readonly path;
-    constructor(defaultConfig: ConfigData, public readonly name:string, public readonly version:number) {
+    public readonly name: string;
+    public readonly version: number;
+    constructor({ name, version, defaultConfig }: ConfigOptions) {
+        this.name = name;
+        this.version = version;
         this.defaultConfig = structuredClone(defaultConfig);
         this.path = joinPath(CONFIG_PATH, this.name + ".toml");
     }

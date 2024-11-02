@@ -120,10 +120,7 @@ export class Connection {
 }
 export class Server {
     server?: TCPSocketListener;
-    constructor(public readonly host: string, public readonly port: number, private context: Context) {
-        this.host = host;
-        this.port = port;
-    }
+    constructor(public readonly host: string, public readonly port: number, private context: Context) {}
 
     start() {
         this.server = Bun.listen<SocketData>({

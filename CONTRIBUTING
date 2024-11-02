@@ -2,3 +2,4 @@ Singletons should be avoided. If a singleton is needed, it should be initialized
 All code should be categorized based on its purpose. E.g. config handles data, as such goes under data.
 Do not directly export default values from files. Make it a variable then export default the variable, also exporting the variable.
 It can often be preferable to use objects as parameters over seperate parameters. Use for functions with 3+ parameters where appropriate.
+It's good practice to accept a context in the constructor of classes, even if unused in case it's needed in the future (although generic classes such as data types or utilities may not require it).
