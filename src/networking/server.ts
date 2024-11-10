@@ -1,7 +1,8 @@
 import type { TCPSocketListener, Socket } from "bun";
 import { ArrayBufferSink } from "bun";
 import type { Protocol } from "networking/protocol/protocol";
-import type { Context } from "context";
+import type { ContextManager } from "contextmanager";
+import type { Player } from "entities/player";
 
 function writeFromSink(sink: ArrayBufferSink, socket: Socket<any>) {
     const data = sink.flush() as Uint8Array;
@@ -18,19 +19,14 @@ export interface SocketData {
 }
 
 export class Connection {
-    socket: Socket<SocketData>;
-    closed: boolean;
+    closed = false;
     protocol?: Protocol;
-    dataQueue: Uint8Array[];
-    processing: boolean;
-    constructor(socket: Socket<SocketData>, private context: Context) {
-        this.socket = socket;
-        this.closed = false;
-        this.dataQueue = [];
-        this.processing = false;
-    }
+    player?: Player;
+    dataQueue: Uint8Array[] = [];
+    processing = false;
+    constructor(public readonly socket: Socket<SocketData>, public readonly context: ContextManager) {}
 
-    write(data: string | ArrayBuffer | Bun.BufferSource) {
+    async write(data: string | ArrayBuffer | Bun.BufferSource) {
         if (this.closed) {
             throw new Error('Connection was closed');
         }
@@ -100,18 +96,17 @@ export class Connection {
         }
     }
 
-    start() {
-        if (this.closed) {
-            throw new Error('Connection was closed');
-        }
-    }
-
     stop() {
         if (this.closed) {
             return;
         }
         try {
             this.socket.end();
+            setTimeout(() => {
+                if (this.socket.readyState !== 'closed') {
+                    this.socket.terminate();
+                }
+            }, 1000);
         } catch {
             // Ignore errors (if the method fails there isn't much I can do)
         }
@@ -120,9 +115,12 @@ export class Connection {
 }
 export class Server {
     server?: TCPSocketListener;
-    constructor(public readonly host: string, public readonly port: number, private context: Context) {}
-
-    start() {
+    constructor(public readonly context: ContextManager) {}
+    public host?: string;
+    public port?: number;
+    start(host: string, port: number) {
+        this.host = host;
+        this.port = port;
         this.server = Bun.listen<SocketData>({
             hostname: this.host,
             port: this.port,
@@ -148,7 +146,6 @@ export class Server {
                         faucet: new ArrayBufferSink(),
                         sink: new ArrayBufferSink()
                     };
-                    socket.data.connection.start();
                     socket.data.faucet.start({ stream: true, highWaterMark: 1024 });
                     socket.data.sink.start({ stream: true, highWaterMark: 1024 });
                 },

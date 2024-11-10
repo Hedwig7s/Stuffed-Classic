@@ -1,7 +1,7 @@
 export default class Vector3 {
-    private _x: number;
-    private _y: number;
-    private _z: number;
+    protected _x: number;
+    protected _y: number;
+    protected _z: number;
     get x(): number {
         return this._x;
     }

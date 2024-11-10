@@ -1,4 +1,4 @@
-import BaseParser from "data/worlds/parsers/base";
+import BaseWorldParser from "data/worlds/parsers/base";
 import Vector3 from "datatypes/vector3";
 import EntityPosition from "datatypes/entityposition";
 import { Parser } from "utility/dataparser";
@@ -19,9 +19,8 @@ interface Header {
     spawnPitch: number;
 }
 interface Block {
-    [key: string]: string|number;
-    id: number;
-    count: number;
+    readonly id: number;
+    readonly count: number;
 }
 
 const HEADER_PARSER = new Parser<Header>()
@@ -41,12 +40,12 @@ const BLOCK_PARSER = new Parser<Block>()
     .uint32('count');
 const WORLD_VERSION = 3;
 
-export default class HWorldParser extends BaseParser {
+export default class HWorldParser extends BaseWorldParser {
     decode(data: Uint8Array): WorldOptions {
         const HEADER = HEADER_PARSER.parse(data.subarray(0, 18));
         const SIZE = new Vector3(HEADER.sizeX, HEADER.sizeY, HEADER.sizeZ);
         const SPAWN = new EntityPosition(HEADER.spawnX, HEADER.spawnY, HEADER.spawnZ, HEADER.spawnYaw, HEADER.spawnPitch);
-        const blocks = new Uint8Array(SIZE.product());
+        const blocks = new Uint8Array(SIZE.product()).fill(0);
         const blocksView = new DataView(blocks.buffer);
         let compressedBlocks = data.subarray(18);
         if (HEADER.version >= 3) {
@@ -79,7 +78,7 @@ export default class HWorldParser extends BaseParser {
             spawnYaw: world.spawn.yaw,
             spawnPitch: world.spawn.pitch
         });
-        let blocks = new Uint8Array(world.size.product());
+        let blocks = new Uint8Array(world.size.product()).fill(0);
         let blockSize = 0;
         function writeBlock(id: number, count: number, offset: number) {
             if (offset + 5 > blocks.length) {

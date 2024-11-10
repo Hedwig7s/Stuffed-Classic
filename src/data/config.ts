@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync } from "fs";
+import { readFile, writeFile } from "fs/promises";
 import { join as joinPath } from "path";
 import * as toml from "smol-toml";
 import { CONFIG_PATH } from "data/constants";
@@ -27,30 +27,30 @@ export interface ConfigOptions {
     defaultConfig: ConfigData;
 }
 
-export class Config {
-    private readonly defaultConfig: ConfigData = {};
-    private _config: ConfigData = {};
-    public config = createProxy(this._config, this.defaultConfig);
+export class Config<T extends ConfigData = ConfigData> {
+    protected readonly defaultConfig = {} as T;
+    protected _config = {};
+    public config = createProxy(this._config, this.defaultConfig) as Readonly<T>;
     public readonly path;
     public readonly name: string;
     public readonly version: number;
     constructor({ name, version, defaultConfig }: ConfigOptions) {
         this.name = name;
         this.version = version;
-        this.defaultConfig = structuredClone(defaultConfig);
+        this.defaultConfig = structuredClone(defaultConfig) as T;
         this.path = joinPath(CONFIG_PATH, this.name + ".toml");
     }
-    public load() {
+    public async load() {
         try {
-            const data = readFileSync(CONFIG_PATH).toString();
+            const data = await readFile(CONFIG_PATH).toString();
             this._config = toml.parse(data);
-            this.config = createProxy(this._config, this.defaultConfig);
+            this.config = createProxy(this._config, this.defaultConfig) as Readonly<T>;
         } catch {
             this._config = structuredClone(this.defaultConfig);
         }
     }
-    public save() {
-        writeFileSync(this.path, toml.stringify(this.config));
+    public async save() {
+        writeFile(this.path, toml.stringify(this.config));
     }
 }
 export default Config;

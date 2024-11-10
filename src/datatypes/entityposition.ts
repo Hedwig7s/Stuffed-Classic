@@ -1,9 +1,9 @@
 import Vector3 from "./vector3";
 
 export default class EntityPosition {
-    private _position: Vector3;
-    private _yaw: number;
-    private _pitch: number;
+    protected _position: Vector3;
+    protected _yaw: number;
+    protected _pitch: number;
     constructor(x: number, y: number, z: number, yaw: number, pitch: number) {
         this._position = new Vector3(x, y, z);
         this._yaw = yaw;

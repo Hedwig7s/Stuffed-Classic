@@ -1,3 +1,4 @@
+import { InvalidArgumentError, OutOfRangeError, ValueError } from "utility/genericerrors";
 interface Format {
     name:string,
     key:string,
@@ -29,7 +30,7 @@ const nativeEndianness: "big"|"little" = (() => {
     a[0] = 0xdeadbeef;
     if (c[0] == 0xef) return 'little';
     if (c[0] == 0xde) return 'big';
-    throw new Error('unknown endianness');
+    throw new ValueError('unknown endianness');
 })();
   
 function parseInt(format: IntFormat, data: Uint8Array, endianness: "big" | "little"): number {
@@ -55,7 +56,7 @@ function encodeInt(format:IntFormat, value:number, endianness: "big"|"little"): 
     let num = value;
     if (format.signed && num < 0) {
         if (num < -(1 << (format.size * 8))) {
-            throw new Error(`Integer ${format.key} out of range`);
+            throw new OutOfRangeError(`Integer ${format.key} out of range`);
         }
         num = (num >>> 0) + (1 << (format.size * 8));
     }
@@ -69,30 +70,31 @@ function encodeInt(format:IntFormat, value:number, endianness: "big"|"little"): 
     return out;
 }
 
-export class Parser<T extends Record<string, string|number>> {
-    private formatList: Format[] = [];
-    private endianness: "little"|"big" = nativeEndianness;
+export class Parser<T extends object> {
+    protected formatList: Format[] = [];
+    protected endianness: "little"|"big" = nativeEndianness;
     parse(data: Uint8Array): T {
         const parsed: Record<string, number|string> = {};
         let offset = 0;
+        this.endianness = nativeEndianness;
         for (const format of this.formatList) {
             switch (format.name) {
                 case 'native-endian': {
-                    this._nativeEndian();
+                    this.endianness = nativeEndianness;
                     break;
                 }
                 case 'little-endian': {
-                    this._littleEndian();
+                    this.endianness = "little";
                     break;
                 }
                 case 'big-endian': {
-                    this._bigEndian();
+                    this.endianness = "big";
                     break;
                 }
                 case 'integer': {
                     const intFormat = format as IntFormat;
                     if (offset + intFormat.size - 1 >= data.length) {
-                        throw new Error("Integer out of range");
+                        throw new OutOfRangeError("Integer out of range");
                     }
                     const slice = data.subarray(offset, offset += intFormat.size);
                     parsed[intFormat.key] = parseInt(intFormat, slice, this.endianness);
@@ -101,7 +103,7 @@ export class Parser<T extends Record<string, string|number>> {
                 case 'string': {
                     const stringFormat = format as StringFormat;
                     function decode(slice: Uint8Array) : string {
-                        return Buffer.from(slice).toString(stringFormat.encoding);
+                        return new TextDecoder(stringFormat.encoding).decode(slice);
                     }
                     switch(stringFormat.type) {
                         case "zero-terminated": {
@@ -109,7 +111,7 @@ export class Parser<T extends Record<string, string|number>> {
                             let size = 0;
                             while(true) {
                                 if (size >= slice.length) {
-                                    throw new Error("Unterminated zero-terminated string");
+                                    throw new OutOfRangeError("Unterminated zero-terminated string");
                                 }
                                 const b = slice[size];
                                 if(b === 0) {
@@ -123,24 +125,24 @@ export class Parser<T extends Record<string, string|number>> {
                         }
                         case "fixed": {
                             if (stringFormat.length == null) {
-                                throw new Error("Fixed string length must be specified");
+                                throw new InvalidArgumentError("Fixed string length must be specified");
                             }
                             if (offset + stringFormat.length - 1 >= data.length) {
-                                throw new Error("Fixed string out of range");
+                                throw new OutOfRangeError("Fixed string out of range");
                             }
                             const slice = data.subarray(offset, offset += stringFormat.length);
                             parsed[stringFormat.key] = decode(slice);
                             break;
                         }
                         default: {
-                            throw new Error(`Unknown string type: ${stringFormat.type}`);
+                            throw new InvalidArgumentError(`Unknown string type: ${stringFormat.type}`);
                         }
                     }
                     break;
                 }
                 case "float": {
                     if (offset + 4 - 1 >= data.length) {
-                        throw new Error("Float out of range");
+                        throw new OutOfRangeError("Float out of range");
                     }
                     parsed[format.key] = new DataView(data.buffer).getFloat32(offset, this.endianness === "little");
                     offset += 4;
@@ -148,7 +150,7 @@ export class Parser<T extends Record<string, string|number>> {
                 }
                 case "double": {
                     if (offset + 8 - 1 >= data.length) {
-                        throw new Error("Double out of range");
+                        throw new OutOfRangeError("Double out of range");
                     }
                     parsed[format.key] = new DataView(data.buffer).getFloat64(offset, this.endianness === "little");
                     offset += 8;
@@ -157,7 +159,7 @@ export class Parser<T extends Record<string, string|number>> {
                 case "fixed": {
                     const fixedFormat = format as FixedFormat;
                     if (offset + fixedFormat.size - 1 >= data.length) {
-                        throw new Error("Fixed out of range");
+                        throw new OutOfRangeError("Fixed out of range");
                     }
                     const slice = data.subarray(offset, offset += fixedFormat.size);
                     const value = parseInt({...fixedFormat, name: "integer"}, slice, this.endianness);
@@ -166,15 +168,23 @@ export class Parser<T extends Record<string, string|number>> {
                 }
                 
                 default: {
-                    throw new Error(`Unknown format: ${format.name}`);
+                    throw new InvalidArgumentError(`Unknown format: ${format.name}`);
                 }
             }
         }
+        for (const format of this.formatList) {
+            if (parsed[format.key] == null && !format.name.endsWith("endian")) {
+                throw new ValueError(`Incomplete data: Key ${format.key} not found`);
+                break;
+            }
+        }
+
         return parsed as T;
     }
     encode(data: T): Uint8Array {
         let out = new Uint8Array(256);
         let offset = 0;
+        this.endianness = nativeEndianness;
         function checkSize(add: number) {
             if (offset + add >= out.length) {
                 const newOut = new Uint8Array(out.length * 2);
@@ -183,29 +193,29 @@ export class Parser<T extends Record<string, string|number>> {
             }
         }
         for (const format of this.formatList) {
-            const value = data[format.key];
+            const value = data[format.key as keyof T];
             if (value == null && !format.name.endsWith("endian")) {
-                throw new Error(`Key ${format.key} not found in data`);
+                throw new InvalidArgumentError(`Key ${format.key} not found in data`);
             }
             switch (format.name) {
                 case 'native-endian': {
-                    this._nativeEndian();
+                    this.endianness = nativeEndianness;
                     break;
                 }
                 case 'little-endian': {
-                    this._littleEndian();
+                    this.endianness = "little";
                     break;
                 }
                 case 'big-endian': {
-                    this._bigEndian();
+                    this.endianness = "big";
                     break;
                 }
                 case 'integer': {
                     if (typeof value !== "number") {
-                        throw new Error(`Key ${format.key} is not a number`);
+                        throw new InvalidArgumentError(`Key ${format.key} is not a number`);
                     }
                     if (value % 1 !== 0) {
-                        throw new Error(`Key ${format.key} is not an integer`);
+                        throw new InvalidArgumentError(`Key ${format.key} is not an integer`);
                     }
                     const intFormat = format as IntFormat;
                     checkSize(intFormat.size);
@@ -215,13 +225,15 @@ export class Parser<T extends Record<string, string|number>> {
                 }
                 case 'string': {
                     if (typeof value !== "string") {
-                        throw new Error(`Key ${format.key} is not a string`); 
+                        throw new InvalidArgumentError(`Key ${format.key} is not a string`); 
                     }
                     const stringFormat = format as StringFormat;
                     if (stringFormat.type == "fixed" && value.length > (stringFormat.length ?? value.length)) {
-                        throw new Error(`String ${format.key} is too long`);
+                        throw new InvalidArgumentError(`String ${format.key} is too long`);
                     }
-                    const encoded = new Uint8Array(Buffer.from(stringFormat.type == "zero-terminated" ? value + "\0" : value.padEnd(stringFormat.length ?? value.length, " "), stringFormat.encoding));
+                    const encoded = new Uint8Array(Buffer.from(stringFormat.type == "zero-terminated" ? value + "\0" 
+                                                                : value.padEnd(stringFormat.length ?? value.length, " "), 
+                                                                stringFormat.encoding));
                     checkSize(encoded.length);
                     out.set(encoded, offset);
                     offset += encoded.length;
@@ -229,7 +241,7 @@ export class Parser<T extends Record<string, string|number>> {
                 }
                 case 'float': {
                     if (typeof value !== "number") {
-                        throw new Error(`Key ${format.key} is not a number`);
+                        throw new InvalidArgumentError(`Key ${format.key} is not a number`);
                     }
                     checkSize(4);
                     new DataView(out.buffer).setFloat32(offset, value, this.endianness === "little");
@@ -238,7 +250,7 @@ export class Parser<T extends Record<string, string|number>> {
                 }
                 case 'double': {
                     if (typeof value !== "number") {
-                        throw new Error(`Key ${format.key} is not a number`);
+                        throw new InvalidArgumentError(`Key ${format.key} is not a number`);
                     }
                     checkSize(8);
                     new DataView(out.buffer).setFloat64(offset, value, this.endianness === "little");
@@ -247,12 +259,12 @@ export class Parser<T extends Record<string, string|number>> {
                 }
                 case 'fixed': {
                     if (typeof value !== "number") {
-                        throw new Error(`Key ${format.key} is not a number`);
+                        throw new InvalidArgumentError(`Key ${format.key} is not a number`);
                     }
                     const fixedFormat = format as FixedFormat;
                     const fixedValue = Math.floor(value * (1 << fixedFormat.point));
                     if (fixedValue < -(1 << (fixedFormat.size * 8 - 1)) || fixedValue >= (1 << (fixedFormat.size * 8 - 1))) {
-                        throw new Error(`Fixed value ${format.key} out of range`);
+                        throw new InvalidArgumentError(`Fixed value ${format.key} out of range`);
                     }
                     checkSize(fixedFormat.size);
                     out.set(encodeInt({...fixedFormat, name: "integer"}, fixedValue, this.endianness), offset);
@@ -260,7 +272,7 @@ export class Parser<T extends Record<string, string|number>> {
                     break;
                 }
                 default: {
-                    throw new Error("Unknown format "+format.name);
+                    throw new InvalidArgumentError("Unknown format "+format.name);
                 }
             }
 
@@ -349,7 +361,7 @@ export class Parser<T extends Record<string, string|number>> {
     }
     fixed(key: string, options: FixedOptions) {
         if (options.point > options.size*8) {
-            throw new Error("Fixed point out of range");
+            throw new OutOfRangeError("Fixed point out of range");
         }
         this.formatList.push({
             name: 'fixed',
@@ -382,15 +394,6 @@ export class Parser<T extends Record<string, string|number>> {
             encoding: encoding,
         });
         return this;
-    }
-    private _nativeEndian() {
-        this.endianness = nativeEndianness;
-    }
-    private _littleEndian() {
-        this.endianness = "little";
-    }
-    private _bigEndian() {
-        this.endianness = "big";
     }
     nativeEndian() {
         const format: Format = {

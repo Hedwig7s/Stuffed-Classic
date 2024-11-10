@@ -3,3 +3,4 @@ All code should be categorized based on its purpose. E.g. config handles data, a
 Do not directly export default values from files. Make it a variable then export default the variable, also exporting the variable.
 It can often be preferable to use objects as parameters over seperate parameters. Use for functions with 3+ parameters where appropriate.
 It's good practice to accept a context in the constructor of classes, even if unused in case it's needed in the future (although generic classes such as data types or utilities may not require it).
+The context manager should not run anything on instances beyond the constructor. It should only be used to initialize the instance.
