@@ -1,6 +1,6 @@
 import type { TCPSocketListener, Socket } from "bun";
 import { ArrayBufferSink } from "bun";
-import type { Protocol } from "networking/protocol/protocol";
+import type { BaseProtocol, PacketIds } from "networking/protocol/baseprotocol";
 import type { ContextManager } from "contextmanager";
 import type { Player } from "entities/player";
 
@@ -20,7 +20,7 @@ export interface SocketData {
 
 export class Connection {
     closed = false;
-    protocol?: Protocol;
+    protocol?: BaseProtocol;
     player?: Player;
     dataQueue: Uint8Array[] = [];
     processing = false;
@@ -71,7 +71,7 @@ export class Connection {
 
             if (!this.protocol) return;
 
-            const packet = this.protocol.getPacket(id);
+            const packet = this.protocol.getPacket(id as PacketIds);
             if (!packet) {
                 throw new Error(`Packet ${id} not found`);
             }

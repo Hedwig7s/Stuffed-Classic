@@ -1,8 +1,8 @@
 import { WorldManager } from "data/worlds/worldmanager";
 import { Config } from "data/config";
 import { Server } from "networking/server";
-import type { Protocol } from "networking/protocol/protocol";
-import { Protocol7 } from "networking/protocol/protocol7";
+import type { BaseProtocol } from "networking/protocol/baseprotocol";
+import { Protocol7 } from "networking/protocol/7/protocol";
 import { EntityRegistry } from "entities/entityregistry";
 import World from 'data/worlds/world';
 import EntityPosition from 'datatypes/entityposition';
@@ -25,7 +25,7 @@ export class ContextManager {
     public readonly server: Server;
     public readonly entityRegistry: EntityRegistry;
     public readonly playerRegistry: EntityRegistry;
-    public readonly protocols: Record<number, Protocol>;
+    public readonly protocols: Record<number, BaseProtocol>;
     // TODO: World generators
     public defaultWorld?: World;
     protected async setDefaultWorld() {

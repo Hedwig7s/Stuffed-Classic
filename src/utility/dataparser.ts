@@ -1,4 +1,5 @@
 import { InvalidArgumentError, OutOfRangeError, ValueError } from "utility/genericerrors";
+
 interface Format {
     name:string,
     key:string,
@@ -70,9 +71,15 @@ function encodeInt(format:IntFormat, value:number, endianness: "big"|"little"): 
     return out;
 }
 
-export class Parser<T extends object> {
-    protected formatList: Format[] = [];
-    protected endianness: "little"|"big" = nativeEndianness;
+export class BinaryParser<T extends object> {
+    private readonly formatList: Format[];
+    private endianness: "little" | "big";
+
+    constructor(formatList: Format[]) {
+        this.formatList = formatList;
+        this.endianness = nativeEndianness;
+    }
+
     parse(data: Uint8Array): T {
         const parsed: Record<string, number|string> = {};
         let offset = 0;
@@ -279,88 +286,88 @@ export class Parser<T extends object> {
         }
         return out.subarray(0, offset);
     }
-    integer(key: string, options: IntOptions) {
+}
+
+export class ParserBuilder<T extends object> {
+    private formatList: Format[] = [];
+
+    integer(key: string, options: IntOptions): this {
         this.formatList.push({
             name: 'integer',
             key: key,
             ...options,
         });
-      return this;
+        return this;
     }
-    uint8(key: string) {
-        this.integer(key, {
+
+    uint8(key: string): this {
+        return this.integer(key, {
             size: 1,
             signed: false,
         });
-      return this;
     }
+
     int8(key: string) {
-        this.integer(key, {
+        return this.integer(key, {
             size: 1,
             signed: true,
         });
-      return this;
     }
     uint16(key: string) {
-        this.integer(key, {
+        return this.integer(key, {
             size: 2,
             signed: false,
         });
-      return this;
     }
     int16(key: string) {
-        this.integer(key, {
+        return this.integer(key, {
             size: 2,
             signed: true,
         });
-      return this;
     }
     uint32(key: string) {
-        this.integer(key, {
+        return this.integer(key, {
             size: 4,
             signed: false,
         });
-      return this;
     }
     int32(key: string) {
-        this.integer(key, {
+        return this.integer(key, {
             size: 4,
             signed: true,
         });
-      return this;
     }
     uint64(key: string) {
-        this.integer(key, {
+        return this.integer(key, {
             size: 8,
             signed: false,
         });
-        return this;
     }
     int64(key: string) {
-        this.integer(key, {
+        return this.integer(key, {
             size: 8,
             signed: true,
         });
-        return this;
     }
-    float(key: string) {
-        const format: Format = {
+
+    float(key: string): this {
+        this.formatList.push({
             name: 'float',
             key: key,
-        };
-        this.formatList.push(format);
+        });
         return this;
     }
-    double(key: string) {
-        const format: Format = {
+
+    double(key: string): this {
+        this.formatList.push({
             name: 'double',
             key: key,
-        };
-        this.formatList.push(format);
+        });
         return this;
     }
-    fixed(key: string, options: FixedOptions) {
-        if (options.point > options.size*8) {
+
+    fixed(key: string, options: FixedOptions): this {
+        if (options.point > options.size * 8) {
             throw new OutOfRangeError("Fixed point out of range");
         }
         this.formatList.push({
@@ -370,7 +377,8 @@ export class Parser<T extends object> {
         });
         return this;
     }
-    string(key: string, options: StringOptions) {
+
+    string(key: string, options: StringOptions): this {
         const format: StringFormat = {
             name: 'string',
             key: key,
@@ -380,43 +388,47 @@ export class Parser<T extends object> {
         this.formatList.push(format);
         return this;
     }
-    zeroTerminatedString(key: string, encoding: BufferEncoding) {    
-        this.string(key, {
+
+    zeroTerminatedString(key: string, encoding?: BufferEncoding): this {
+        return this.string(key, {
             type: "zero-terminated",
             encoding: encoding,
         });
-        return this;
     }
-    fixedString(key: string, length: number, encoding: BufferEncoding) {
-        this.string(key, {
+
+    fixedString(key: string, length: number, encoding?: BufferEncoding): this {
+        return this.string(key, {
             type: "fixed",
             length: length,
             encoding: encoding,
         });
-        return this;
     }
-    nativeEndian() {
-        const format: Format = {
+
+    nativeEndian(): this {
+        this.formatList.push({
             name: 'native-endian',
             key: '',
-        };
-        this.formatList.push(format);
+        });
         return this;
     }
-    littleEndian() {
-        const format: Format = {
+
+    littleEndian(): this {
+        this.formatList.push({
             name: 'little-endian',
             key: '',
-        };
-        this.formatList.push(format);
+        });
         return this;
     }
-    bigEndian() {
-        const format: Format = {
+
+    bigEndian(): this {
+        this.formatList.push({
             name: 'big-endian',
             key: '',
-        };
-        this.formatList.push(format);
+        });
         return this;
+    }
+
+    build(): BinaryParser<T> {
+        return new BinaryParser<T>(this.formatList);
     }
 }

@@ -1,7 +1,7 @@
 import BaseWorldParser from "data/worlds/parsers/base";
 import Vector3 from "datatypes/vector3";
 import EntityPosition from "datatypes/entityposition";
-import { Parser } from "utility/dataparser";
+import { BinaryParser } from "utility/dataparser";
 import zlib from "zlib";
 
 import type { WorldOptions, World } from "data/worlds/world";
@@ -23,7 +23,7 @@ interface Block {
     readonly count: number;
 }
 
-const HEADER_PARSER = new Parser<Header>()
+const HEADER_PARSER = new BinaryParser<Header>()
     .littleEndian()
     .uint32('version')
     .uint16('sizeX')
@@ -35,7 +35,7 @@ const HEADER_PARSER = new Parser<Header>()
     .uint8('spawnYaw')
     .uint8('spawnPitch');
 
-const BLOCK_PARSER = new Parser<Block>()
+const BLOCK_PARSER = new BinaryParser<Block>()
     .uint8('id')
     .uint32('count');
 const WORLD_VERSION = 3;
