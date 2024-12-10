@@ -1,7 +1,6 @@
 import type { ContextManager } from "contextmanager";
 import type { Entity } from "entities/entity";
-import { OutOfCapacityError, ValueError } from "utility/genericerrors";
-import { v4 as uuidv4 } from 'uuid';
+import { v4 as uuidv4 } from "uuid";
 
 export interface EntityRegistryOptions {
     maxEntities?: number;
@@ -17,24 +16,24 @@ export class EntityRegistry {
 
     constructor({ maxEntities, appendToList, context }: EntityRegistryOptions) {
         this.context = context;
-        this.maxEntities = maxEntities ?? 10**7;
+        this.maxEntities = maxEntities ?? 10 ** 7;
         this.appendToList = appendToList ?? true;
     }
 
     register(entity: Entity, id?: string): string {
         if (this._entities.size >= this.maxEntities) {
-            throw new OutOfCapacityError("Too many entities");
+            throw new Error("Too many entities");
         }
 
         const entityId = id ?? uuidv4();
-        
+
         if (this._entities.has(entityId)) {
-            throw new ValueError("Entity id was already registered");
+            throw new Error("Entity id was already registered");
         }
 
         this._entities.set(entityId, entity);
         entity.ids.set(this, entityId);
-        
+
         if (this.appendToList && entity.registries.indexOf(this) === -1) {
             entity.registries.push(this);
         }
@@ -53,7 +52,7 @@ export class EntityRegistry {
 
         const id = entity.ids.get(this);
         if (id == null) {
-            throw new ValueError("Entity has no id");
+            throw new Error("Entity has no id");
         }
 
         const current = this._entities.get(id);

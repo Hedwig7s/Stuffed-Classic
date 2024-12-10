@@ -35,10 +35,16 @@ export default class Vector3 {
         return this._x * v.x + this._y * v.y + this._z * v.z;
     }
     cross(v: Vector3): Vector3 {
-        return new Vector3(this._y * v.z - this._z * v.y, this._z * v.x - this._x * v.z, this._x * v.y - this._y * v.x);
+        return new Vector3(
+            this._y * v.z - this._z * v.y,
+            this._z * v.x - this._x * v.z,
+            this._x * v.y - this._y * v.x
+        );
     }
     magnitude(): number {
-        return Math.sqrt(this._x * this._x + this._y * this._y + this._z * this._z);
+        return Math.sqrt(
+            this._x * this._x + this._y * this._y + this._z * this._z
+        );
     }
     normalize(): Vector3 {
         const mag = this.magnitude();

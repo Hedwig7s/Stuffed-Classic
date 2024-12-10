@@ -1,40 +1,50 @@
-import { InvalidArgumentError, OutOfRangeError, ValueError } from "utility/genericerrors";
+import * as iconv from "iconv-lite";
 
 interface Format {
-    name:string,
-    key:string,
+    name: string;
+    key: string;
 }
 export interface IntOptions {
-    size: number,
-    signed: boolean,
+    size: number;
+    signed: boolean;
 }
 type IntFormat = Format & IntOptions;
 export interface StringOptions {
-    type: "fixed"|"zero-terminated"
-    length?: number,
-    encoding?: BufferEncoding,
+    type: "fixed" | "zero-terminated";
+    length?: number;
+    encoding?: string;
 }
-type StringFormat = Format & StringOptions & {
-    encoding: BufferEncoding
-};
+type StringFormat = Format &
+    StringOptions & {
+        encoding: string;
+    };
 export interface FixedOptions {
-    size: number,
-    point: number,
-    signed: boolean,
+    size: number;
+    point: number;
+    signed: boolean;
 }
-type FixedFormat = Format & FixedOptions
+type FixedFormat = Format & FixedOptions;
 
-const nativeEndianness: "big"|"little" = (() => {
+export interface RawOptions {
+    size: number;
+}
+type RawFormat = Format & RawOptions;
+
+const nativeEndianness: "big" | "little" = (() => {
     const b = new ArrayBuffer(4);
     const a = new Uint32Array(b);
     const c = new Uint8Array(b);
     a[0] = 0xdeadbeef;
-    if (c[0] == 0xef) return 'little';
-    if (c[0] == 0xde) return 'big';
-    throw new ValueError('unknown endianness');
+    if (c[0] == 0xef) return "little";
+    if (c[0] == 0xde) return "big";
+    throw new Error("unknown endianness");
 })();
-  
-function parseInt(format: IntFormat, data: Uint8Array, endianness: "big" | "little"): number {
+
+function parseInt(
+    format: IntFormat,
+    data: Uint8Array,
+    endianness: "big" | "little"
+): number {
     let value = 0;
     const start = endianness === "little" ? format.size - 1 : 0;
     const end = endianness === "little" ? -1 : format.size;
@@ -49,15 +59,18 @@ function parseInt(format: IntFormat, data: Uint8Array, endianness: "big" | "litt
         }
     }
     return value;
-  }
+}
 
-
-function encodeInt(format:IntFormat, value:number, endianness: "big"|"little"): Uint8Array {
+function encodeInt(
+    format: IntFormat,
+    value: number,
+    endianness: "big" | "little"
+): Uint8Array {
     const out = new Uint8Array(format.size);
     let num = value;
     if (format.signed && num < 0) {
         if (num < -(1 << (format.size * 8))) {
-            throw new OutOfRangeError(`Integer ${format.key} out of range`);
+            throw new Error(`Integer ${format.key} out of range`);
         }
         num = (num >>> 0) + (1 << (format.size * 8));
     }
@@ -71,7 +84,7 @@ function encodeInt(format:IntFormat, value:number, endianness: "big"|"little"): 
     return out;
 }
 
-export class BinaryParser<T extends object> {
+class BinaryParser<T extends object> {
     private readonly formatList: Format[];
     private endianness: "little" | "big";
 
@@ -81,48 +94,61 @@ export class BinaryParser<T extends object> {
     }
 
     parse(data: Uint8Array): T {
-        const parsed: Record<string, number|string> = {};
+        const parsed: Record<string, number | string | Uint8Array> = {};
         let offset = 0;
         this.endianness = nativeEndianness;
         for (const format of this.formatList) {
             switch (format.name) {
-                case 'native-endian': {
+                case "native-endian": {
                     this.endianness = nativeEndianness;
                     break;
                 }
-                case 'little-endian': {
+                case "little-endian": {
                     this.endianness = "little";
                     break;
                 }
-                case 'big-endian': {
+                case "big-endian": {
                     this.endianness = "big";
                     break;
                 }
-                case 'integer': {
+                case "integer": {
                     const intFormat = format as IntFormat;
                     if (offset + intFormat.size - 1 >= data.length) {
-                        throw new OutOfRangeError("Integer out of range");
+                        throw new Error("Integer out of range");
                     }
-                    const slice = data.subarray(offset, offset += intFormat.size);
-                    parsed[intFormat.key] = parseInt(intFormat, slice, this.endianness);
+                    const slice = data.subarray(
+                        offset,
+                        (offset += intFormat.size)
+                    );
+                    parsed[intFormat.key] = parseInt(
+                        intFormat,
+                        slice,
+                        this.endianness
+                    );
                     break;
                 }
-                case 'string': {
+                case "string": {
                     const stringFormat = format as StringFormat;
-                    function decode(slice: Uint8Array) : string {
-                        return new TextDecoder(stringFormat.encoding).decode(slice);
-                    }
-                    switch(stringFormat.type) {
+                    const decode = function (slice: Uint8Array): string {
+                        return new TextDecoder(stringFormat.encoding).decode(
+                            slice
+                        );
+                    };
+                    switch (stringFormat.type) {
                         case "zero-terminated": {
                             const slice = data.subarray(offset);
                             let size = 0;
-                            while(true) {
+                            while (true) {
                                 if (size >= slice.length) {
-                                    throw new OutOfRangeError("Unterminated zero-terminated string");
+                                    throw new Error(
+                                        "Unterminated zero-terminated string"
+                                    );
                                 }
                                 const b = slice[size];
-                                if(b === 0) {
-                                    parsed[stringFormat.key] = decode(slice.subarray(0, size));
+                                if (b === 0) {
+                                    parsed[stringFormat.key] = decode(
+                                        slice.subarray(0, size)
+                                    );
                                     offset += size + 1;
                                     break;
                                 }
@@ -132,61 +158,109 @@ export class BinaryParser<T extends object> {
                         }
                         case "fixed": {
                             if (stringFormat.length == null) {
-                                throw new InvalidArgumentError("Fixed string length must be specified");
+                                throw new Error(
+                                    "Fixed string length must be specified"
+                                );
                             }
-                            if (offset + stringFormat.length - 1 >= data.length) {
-                                throw new OutOfRangeError("Fixed string out of range");
+                            if (
+                                offset + stringFormat.length - 1 >=
+                                data.length
+                            ) {
+                                throw new Error(
+                                    "Fixed string out of range"
+                                );
                             }
-                            const slice = data.subarray(offset, offset += stringFormat.length);
+                            const slice = data.subarray(
+                                offset,
+                                (offset += stringFormat.length)
+                            );
                             parsed[stringFormat.key] = decode(slice);
                             break;
                         }
                         default: {
-                            throw new InvalidArgumentError(`Unknown string type: ${stringFormat.type}`);
+                            throw new Error(
+                                `Unknown string type: ${stringFormat.type}`
+                            );
                         }
                     }
                     break;
                 }
                 case "float": {
                     if (offset + 4 - 1 >= data.length) {
-                        throw new OutOfRangeError("Float out of range");
+                        throw new Error("Float out of range");
                     }
-                    parsed[format.key] = new DataView(data.buffer).getFloat32(offset, this.endianness === "little");
+                    parsed[format.key] = new DataView(data.buffer).getFloat32(
+                        offset,
+                        this.endianness === "little"
+                    );
                     offset += 4;
                     break;
                 }
                 case "double": {
                     if (offset + 8 - 1 >= data.length) {
-                        throw new OutOfRangeError("Double out of range");
+                        throw new Error("Double out of range");
                     }
-                    parsed[format.key] = new DataView(data.buffer).getFloat64(offset, this.endianness === "little");
+                    parsed[format.key] = new DataView(data.buffer).getFloat64(
+                        offset,
+                        this.endianness === "little"
+                    );
                     offset += 8;
                     break;
                 }
                 case "fixed": {
                     const fixedFormat = format as FixedFormat;
                     if (offset + fixedFormat.size - 1 >= data.length) {
-                        throw new OutOfRangeError("Fixed out of range");
+                        throw new Error("Fixed out of range");
                     }
-                    const slice = data.subarray(offset, offset += fixedFormat.size);
-                    const value = parseInt({...fixedFormat, name: "integer"}, slice, this.endianness);
+                    const slice = data.subarray(
+                        offset,
+                        (offset += fixedFormat.size)
+                    );
+                    const value = parseInt(
+                        { ...fixedFormat, name: "integer" },
+                        slice,
+                        this.endianness
+                    );
                     parsed[fixedFormat.key] = value / (1 << fixedFormat.point);
                     break;
                 }
-                
+                case "raw": {
+                    const rawFormat = format as RawFormat;
+                    if (offset + rawFormat.size - 1 >= data.length) {
+                        throw new Error("Fixed out of range");
+                    }
+                    const slice = data.subarray(
+                        offset,
+                        (offset += rawFormat.size)
+                    );
+                    parsed[rawFormat.key] = slice;
+                    break;
+                }
                 default: {
-                    throw new InvalidArgumentError(`Unknown format: ${format.name}`);
+                    throw new Error(
+                        `Unknown format: ${format.name}`
+                    );
                 }
             }
         }
         for (const format of this.formatList) {
             if (parsed[format.key] == null && !format.name.endsWith("endian")) {
-                throw new ValueError(`Incomplete data: Key ${format.key} not found`);
-                break;
+                throw new Error(
+                    `Incomplete data: Key ${format.key} not found`
+                );
             }
         }
 
         return parsed as T;
+    }
+    validate(data: T): [boolean, string?] {
+        for (const format of this.formatList) {
+            const value = data[format.key as keyof T];
+            if (value == null && !format.name.endsWith("endian")) {
+                return [false, `Key ${format.key} not found in data`];
+            }
+        }
+        return [true];
     }
     encode(data: T): Uint8Array {
         let out = new Uint8Array(256);
@@ -194,106 +268,200 @@ export class BinaryParser<T extends object> {
         this.endianness = nativeEndianness;
         function checkSize(add: number) {
             if (offset + add >= out.length) {
-                const newOut = new Uint8Array(out.length * 2);
+                let newLength = out.length;
+                while (offset + add >= newLength) {
+                    newLength *= 2;
+                }
+                const newOut = new Uint8Array(newLength);
                 newOut.set(out);
                 out = newOut;
             }
         }
+        const [valid, error] = this.validate(data);
+        if (!valid) {
+            throw new Error(
+                `Data does not match format: ${error}`
+            );
+        }
         for (const format of this.formatList) {
             const value = data[format.key as keyof T];
             if (value == null && !format.name.endsWith("endian")) {
-                throw new InvalidArgumentError(`Key ${format.key} not found in data`);
+                throw new Error(
+                    `Key ${format.key} not found in data`
+                );
             }
             switch (format.name) {
-                case 'native-endian': {
+                case "native-endian": {
                     this.endianness = nativeEndianness;
                     break;
                 }
-                case 'little-endian': {
+                case "little-endian": {
                     this.endianness = "little";
                     break;
                 }
-                case 'big-endian': {
+                case "big-endian": {
                     this.endianness = "big";
                     break;
                 }
-                case 'integer': {
+                case "integer": {
                     if (typeof value !== "number") {
-                        throw new InvalidArgumentError(`Key ${format.key} is not a number`);
+                        throw new Error(
+                            `Key ${format.key} is not a number`
+                        );
                     }
                     if (value % 1 !== 0) {
-                        throw new InvalidArgumentError(`Key ${format.key} is not an integer`);
+                        throw new Error(
+                            `Key ${format.key} is not an integer`
+                        );
                     }
                     const intFormat = format as IntFormat;
                     checkSize(intFormat.size);
-                    out.set(encodeInt(intFormat, value, this.endianness), offset);
+                    out.set(
+                        encodeInt(intFormat, value, this.endianness),
+                        offset
+                    );
                     offset += intFormat.size;
                     break;
                 }
-                case 'string': {
+                case "string": {
                     if (typeof value !== "string") {
-                        throw new InvalidArgumentError(`Key ${format.key} is not a string`); 
+                        throw new Error(
+                            `Key ${format.key} is not a string`
+                        );
                     }
                     const stringFormat = format as StringFormat;
-                    if (stringFormat.type == "fixed" && value.length > (stringFormat.length ?? value.length)) {
-                        throw new InvalidArgumentError(`String ${format.key} is too long`);
+                    let padLength = value.length;
+                    if (
+                        stringFormat.type === "fixed" &&
+                        stringFormat.length == null
+                    ) {
+                        throw new Error("Invalid fixed length");
+                    } else if (stringFormat.length) {
+                        padLength = stringFormat.length;
                     }
-                    const encoded = new Uint8Array(Buffer.from(stringFormat.type == "zero-terminated" ? value + "\0" 
-                                                                : value.padEnd(stringFormat.length ?? value.length, " "), 
-                                                                stringFormat.encoding));
+                    if (
+                        stringFormat.type === "fixed" &&
+                        value.length > padLength
+                    ) {
+                        throw new Error(
+                            `String ${format.key} is too long`
+                        );
+                    }
+                    const encoding = stringFormat.encoding || "utf-8";
+                    if (!iconv.encodingExists(encoding)) {
+                        throw new Error(
+                            "Invalid encoding: " + encoding
+                        );
+                    }
+                    const encodedValue =
+                        stringFormat.type === "zero-terminated"
+                            ? value + "\0"
+                            : value.padEnd(padLength, " ");
+                    const encoded = new Uint8Array(
+                        iconv.encode(encodedValue, encoding)
+                    );
+
                     checkSize(encoded.length);
                     out.set(encoded, offset);
                     offset += encoded.length;
                     break;
                 }
-                case 'float': {
+                case "float": {
                     if (typeof value !== "number") {
-                        throw new InvalidArgumentError(`Key ${format.key} is not a number`);
+                        throw new Error(
+                            `Key ${format.key} is not a number`
+                        );
                     }
                     checkSize(4);
-                    new DataView(out.buffer).setFloat32(offset, value, this.endianness === "little");
+                    new DataView(out.buffer).setFloat32(
+                        offset,
+                        value,
+                        this.endianness === "little"
+                    );
                     offset += 4;
                     break;
                 }
-                case 'double': {
+                case "double": {
                     if (typeof value !== "number") {
-                        throw new InvalidArgumentError(`Key ${format.key} is not a number`);
+                        throw new Error(
+                            `Key ${format.key} is not a number`
+                        );
                     }
                     checkSize(8);
-                    new DataView(out.buffer).setFloat64(offset, value, this.endianness === "little");
+                    new DataView(out.buffer).setFloat64(
+                        offset,
+                        value,
+                        this.endianness === "little"
+                    );
                     offset += 8;
                     break;
                 }
-                case 'fixed': {
+                case "fixed": {
                     if (typeof value !== "number") {
-                        throw new InvalidArgumentError(`Key ${format.key} is not a number`);
+                        throw new Error(
+                            `Key ${format.key} is not a number`
+                        );
                     }
                     const fixedFormat = format as FixedFormat;
-                    const fixedValue = Math.floor(value * (1 << fixedFormat.point));
-                    if (fixedValue < -(1 << (fixedFormat.size * 8 - 1)) || fixedValue >= (1 << (fixedFormat.size * 8 - 1))) {
-                        throw new InvalidArgumentError(`Fixed value ${format.key} out of range`);
+                    const fixedValue = Math.floor(
+                        value * (1 << fixedFormat.point)
+                    );
+                    if (
+                        fixedValue < -(1 << (fixedFormat.size * 8 - 1)) ||
+                        fixedValue >= 1 << (fixedFormat.size * 8 - 1)
+                    ) {
+                        throw new Error(
+                            `Fixed value ${format.key} out of range`
+                        );
                     }
                     checkSize(fixedFormat.size);
-                    out.set(encodeInt({...fixedFormat, name: "integer"}, fixedValue, this.endianness), offset);
+                    out.set(
+                        encodeInt(
+                            { ...fixedFormat, name: "integer" },
+                            fixedValue,
+                            this.endianness
+                        ),
+                        offset
+                    );
                     offset += fixedFormat.size;
                     break;
                 }
+                case "raw": {
+                    if (!(value instanceof Uint8Array)) {
+                        throw new Error(
+                            `Key ${format.key} is not a Uint8Array!`
+                        );
+                    }
+                    const rawFormat = format as RawFormat;
+                    if (value.byteLength > rawFormat.size) {
+                        throw new Error(
+                            "Provided Uint8Array is too big!"
+                        );
+                    }
+                    checkSize(rawFormat.size);
+                    const newarray = new Uint8Array(rawFormat.size).fill(0);
+                    newarray.set(value);
+                    out.set(newarray, offset);
+                    offset += rawFormat.size;
+                    break;
+                }
                 default: {
-                    throw new InvalidArgumentError("Unknown format "+format.name);
+                    throw new Error(
+                        "Unknown format " + format.name
+                    );
                 }
             }
-
         }
         return out.subarray(0, offset);
     }
 }
-
+export type BinaryParserType<T extends object> = BinaryParser<T>;
 export class ParserBuilder<T extends object> {
     private formatList: Format[] = [];
 
     integer(key: string, options: IntOptions): this {
         this.formatList.push({
-            name: 'integer',
+            name: "integer",
             key: key,
             ...options,
         });
@@ -352,7 +520,7 @@ export class ParserBuilder<T extends object> {
 
     float(key: string): this {
         this.formatList.push({
-            name: 'float',
+            name: "float",
             key: key,
         });
         return this;
@@ -360,7 +528,7 @@ export class ParserBuilder<T extends object> {
 
     double(key: string): this {
         this.formatList.push({
-            name: 'double',
+            name: "double",
             key: key,
         });
         return this;
@@ -368,10 +536,10 @@ export class ParserBuilder<T extends object> {
 
     fixed(key: string, options: FixedOptions): this {
         if (options.point > options.size * 8) {
-            throw new OutOfRangeError("Fixed point out of range");
+            throw new Error("Fixed point out of range");
         }
         this.formatList.push({
-            name: 'fixed',
+            name: "fixed",
             key: key,
             ...options,
         });
@@ -380,50 +548,58 @@ export class ParserBuilder<T extends object> {
 
     string(key: string, options: StringOptions): this {
         const format: StringFormat = {
-            name: 'string',
+            name: "string",
             key: key,
             ...options,
-            encoding: options.encoding ?? "ascii"
+            encoding: options.encoding ?? "ascii",
         };
         this.formatList.push(format);
         return this;
     }
 
-    zeroTerminatedString(key: string, encoding?: BufferEncoding): this {
+    zeroTerminatedString(key: string, encoding?: string): this {
         return this.string(key, {
             type: "zero-terminated",
             encoding: encoding,
         });
     }
 
-    fixedString(key: string, length: number, encoding?: BufferEncoding): this {
+    fixedString(key: string, length: number, encoding?: string): this {
         return this.string(key, {
             type: "fixed",
             length: length,
             encoding: encoding,
         });
     }
-
+    raw(key: string, size: number) {
+        const format: RawFormat = {
+            size: size,
+            name: "raw",
+            key: key,
+        };
+        this.formatList.push(format);
+        return this;
+    }
     nativeEndian(): this {
         this.formatList.push({
-            name: 'native-endian',
-            key: '',
+            name: "native-endian",
+            key: "",
         });
         return this;
     }
 
     littleEndian(): this {
         this.formatList.push({
-            name: 'little-endian',
-            key: '',
+            name: "little-endian",
+            key: "",
         });
         return this;
     }
 
     bigEndian(): this {
         this.formatList.push({
-            name: 'big-endian',
-            key: '',
+            name: "big-endian",
+            key: "",
         });
         return this;
     }

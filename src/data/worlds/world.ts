@@ -2,22 +2,29 @@ import Vector3 from "datatypes/vector3";
 import EntityPosition from "datatypes/entityposition";
 import HWorldParser from "data/worlds/parsers/hworld";
 import { BlockIds, BLOCK_VERSION_REPLACEMENTS } from "data/blocks";
-import zlib from "zlib";
+import zlib, { gzipSync } from "zlib";
 import fs from "fs";
 import * as pathlib from "path";
 import type { Entity } from "entities/entity";
-import { OutOfCapacityError, ValueError } from "utility/genericerrors";
 import type WorldManager from "./worldmanager";
 import type { ContextManager } from "contextmanager";
 import type BaseWorldParser from "./parsers/base";
+import ReadonlyDataView from "datatypes/readonlydataview";
+import { ParserBuilder } from "utility/dataparser";
+import { concatUint8Arrays } from "uint8array-extras";
 
 export interface WorldOptions {
     name: string;
     blocks?: Uint8Array;
     size: Vector3;
     spawn: EntityPosition;
-    autosave: boolean;
-    context?: ContextManager;
+    context: ContextManager;
+}
+
+export interface WorldFromFileOptions {
+    filePath: string;
+    parserClass?: new () => BaseWorldParser;
+    context: ContextManager;
 }
 
 export function getBlockIndex(position: Vector3, size: Vector3): number {
@@ -33,123 +40,147 @@ export interface CachedPack {
 export class World {
     protected _blocks: Uint8Array;
     protected _blocksView: DataView;
-    public get blocks(): DataView {
-        return new DataView(Object.freeze(this._blocks.subarray(0, this._blocks.length)).buffer);
+    public get blocks(): ReadonlyDataView {
+        return new ReadonlyDataView(this._blocks.subarray(0, this._blocks.length).buffer);
     }
-    autosave: boolean;
     name: string;
     size: Vector3;
     spawn: EntityPosition;
     lastUpdate: number;
     entities = new Map<number, Entity>();
     manager?: WorldManager;
-    public readonly context?: ContextManager;
-    protected packedCache = new Map<number, CachedPack>();
-    protected dirtyIndices = new Map<number, number>(); // blockIndex -> timestamp of change
+    public readonly context: ContextManager;
 
-    constructor({ name, size, spawn, blocks, autosave, context }: WorldOptions) {
+    constructor({ name, size, spawn, blocks, context }: WorldOptions) {
         this.name = name;
         this.size = size;
-        this._blocks = blocks || new Uint8Array(this.size.product()).fill(0);
+        this._blocks = new Uint8Array(this.size.product()).fill(0);
+        if (blocks) {
+            this._blocks.set(blocks);
+        }
         this._blocksView = new DataView(this._blocks.buffer);
-        this.autosave = autosave;
         this.spawn = spawn;
         this.lastUpdate = Date.now();
         this.context = context;
     }
 
-    static async fromFile(filePath: string, Parser: new () => BaseWorldParser = HWorldParser, context?: ContextManager): Promise<World|null> {
+    static async fromFile({ filePath, parserClass, context }: WorldFromFileOptions): Promise<World> {
         if (!await fs.promises.exists(filePath)) {
-            return null;
+            throw new Error("File not found.");
         }
+        const Parser = parserClass ?? HWorldParser;
         const data = new Uint8Array(await fs.promises.readFile(filePath));
         const parser = new Parser();
-        const options = parser.decode(data);
+        const options = await parser.decode(data) as WorldOptions;
         options.context = context;
-        options.name = options.name !== "unnamed" ? options.name : pathlib.basename(filePath, pathlib.extname(filePath));
+        options.name = options.name !== "" ? options.name : pathlib.basename(filePath, pathlib.extname(filePath));
         return new World(options);
-
     }
-
     
-    protected _setPackedBlock(index: number, blockId: number, protocolVersion:number, dataView: DataView) {
-        // TODO: Protocol block replacements
-        dataView.setUint8(index, blockId);
-    }
-    protected _buildOrUpdatePack(protocolVersion:number, existingPack?: CachedPack): Uint8Array {
-        const totalSize = Math.floor(this.size.product());
-        const existingData = existingPack?.data;
-        const result = existingData ? new Uint8Array(existingData) : new Uint8Array(totalSize + 4);
-        const dataView = new DataView(result.buffer);
+    async pack(protocolVersion: number, callback?: (data: Uint8Array, size: number, percent:number) => void) {
+        const gzip = zlib.createGzip();
+        const chunkLength = 1024;
+        const levelSize = this.size.product();
+        const buffers: Uint8Array[] = [];
+        let percentage = 0;
+        let length = 0;
+        let sentOffset = 0;
         
-        dataView.setUint32(0, totalSize, false);
-    
-        const indicesToProcess = existingData 
-            ? Array.from(this.dirtyIndices.keys(), (index, timestamp) => {return timestamp < existingPack.lastUpdate ? undefined : index;})
-                   .filter(index => index !== undefined)
-            : Array.from({ length: totalSize }, (_, i) => i);
+        const promise = new Promise<void>((resolve, reject) => {
+            const timeout = setTimeout(() => {
+                reject(new Error("Gzip timeout"));
+            }, 20000);
+            let sendingData = false;
+            let queuePad = false;
+            const sendData = function(pad:boolean = false) {
+                if(!callback) return;
+                if (sendingData) {
+                    queuePad = queuePad || pad 
+                    return;
+                }
+                sendingData = true;
+                let buffer: Uint8Array|undefined = undefined;
+                while (sentOffset < length && length - sentOffset >= chunkLength) {
+                    if (!buffer) {
+                        buffer = concatUint8Arrays(buffers);
+                    }
+                    const subarray = buffer.subarray(sentOffset,sentOffset + chunkLength);
+                    callback(subarray, subarray.byteLength, percentage)
+                    sentOffset += subarray.byteLength;
+                }
+                if ((pad||queuePad) && sentOffset < length) {
+                    queuePad = false;
+                    if (!buffer) {
+                        buffer = concatUint8Arrays(buffers);
+                    }
+                    const padded = new Uint8Array(chunkLength).fill(0);
+                    const remaining = length - sentOffset;
+                    const subarray = buffer.subarray(sentOffset, remaining)
+                    padded.set(subarray);
+                    callback(padded, remaining, percentage);
+                    sentOffset += remaining;
+                }
+                sendingData = false;
+            }
+            gzip.on('data', (data) => {
+                const dataArray = new Uint8Array(data);
+                buffers.push(data);
+                length += dataArray.byteLength;
+                sendData();
+            });
         
-        for (const index of indicesToProcess) {
-            this._setPackedBlock(
-                index + 4, 
-                this._blocksView.getUint8(index), 
-                protocolVersion,
-                dataView
-            );
-        }
-        
-        return result;
-    }
-
-    pack(protocolVersion = 7): Uint8Array {
-        const cached = this.packedCache.get(protocolVersion);
-        const currentTime = this.lastUpdate;
-        
-        let uncompressed: Uint8Array;
-        if (cached?.lastUpdate === currentTime) {
-            uncompressed = cached.data;
-        } else if (cached && this.dirtyIndices.size < 1000) { // Arbitrary threshold for full rebuild
-            uncompressed = this._buildOrUpdatePack(protocolVersion,cached);
-        } else {
-            uncompressed = this._buildOrUpdatePack(protocolVersion);
-        }
-        
-        this.packedCache.set(protocolVersion, {
-            data: uncompressed,
-            lastUpdate: currentTime
+            gzip.on('end', () => {
+                sendData(true);
+                clearTimeout(timeout);
+                resolve();
+            });
+            const headerParser = new ParserBuilder()
+                .bigEndian()
+                .int32("levelSize")
+                .build();
+            gzip.write(headerParser.encode({levelSize: levelSize}));
+            let i = 0;
+            let array = new Uint8Array(chunkLength);
+            for (let block of this._blocks) {
+                // TODO: Protocol block replacements
+                array[i%1024] = block;
+                if (i % chunkLength === 0) {
+                    percentage = Math.round((i/levelSize)*100);
+                }
+                if (i === levelSize - 1) {
+                    gzip.write(array, () => {
+                        gzip.end();
+                    })
+                } else if (i % chunkLength === 0 && i !== 0) {
+                    gzip.write(array);
+                    array = new Uint8Array(chunkLength);
+                }
+                i++;
+            }
         });
-        
-        const compressed = zlib.gzipSync(uncompressed);
-        return new Uint8Array(compressed.buffer, compressed.byteOffset, compressed.byteLength);
+        await promise;
+        return concatUint8Arrays(buffers).subarray(0, length);
     }
 
     setBlock(position: Vector3, blockId: number) {
         const index = getBlockIndex(position, this.size);
         this._blocksView.setUint8(index, blockId);
         this.lastUpdate = Date.now();
-        this.dirtyIndices.set(index, this.lastUpdate);
-        
-        // Clean up old changes that have been applied to all protocol versions
-        const oldestCacheUpdate = Math.min(...Array.from(this.packedCache.values())
-            .map(cache => cache.lastUpdate));
-            
-        // Remove changes that are older than all caches
-        for (const [index, timestamp] of this.dirtyIndices) {
-            if (timestamp <= oldestCacheUpdate) {
-                this.dirtyIndices.delete(index);
-            }
-        }
+    }
+    getBlock(position:Vector3) {
+        const index = getBlockIndex(position,this.size);
+        return this._blocksView.getUint8(index);
     }
 
     async save(saveDir?: string) {
         const PARSER = new HWorldParser();
-        const ENCODED = PARSER.encode(this);
+        const ENCODED = await PARSER.encode(this);
         const saveDirectory = saveDir ?? this.context?.config.main.config.worlds.worldDir;
-        if (!saveDirectory) {
+        if (saveDirectory == null) {
             throw new Error("World save directory not set");
         }
         await fs.promises.mkdir(saveDirectory, { recursive: true });
-        await fs.promises.writeFile(`${saveDir}/${this.name}.hworld`, new DataView(ENCODED.buffer));
+        await fs.promises.writeFile(`${saveDirectory}/${this.name}.hworld`, ENCODED);
     }
 
     registerEntity(entity: Entity) {
@@ -161,12 +192,12 @@ export class World {
                 return;
             }
         }
-        throw new OutOfCapacityError("Too many entities");
+        throw new Error("Too many entities");
     }
 
     unregisterEntity(entity: Entity) {
         if (entity.worldEntityId < 0) {
-            throw new ValueError("Entity is not registered");
+            throw new Error("Entity is not registered");
         }
         this.entities.delete(entity.worldEntityId);
         entity.worldEntityId = -1;

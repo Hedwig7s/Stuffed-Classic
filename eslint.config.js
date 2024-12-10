@@ -1,7 +1,8 @@
 import globals from "globals";
 import eslint from "@eslint/js";
 import tseslint from "typescript-eslint";
-import stylisticJs from '@stylistic/eslint-plugin-js';
+import stylisticJs from "@stylistic/eslint-plugin-js";
+import eslintConfigPrettier from "eslint-config-prettier";
 export default [
     {
         files: ["**/*.{js,mjs,cjs,ts}"],
@@ -12,13 +13,14 @@ export default [
     ...tseslint.configs.stylistic,
     {
         plugins: {
-            "@stylistic/js": stylisticJs
+            "@stylistic/js": stylisticJs,
         },
         rules: {
             "@typescript-eslint/no-explicit-any": "off",
             "@typescript-eslint/naming-convention": "warn",
             "@typescript-eslint/no-unused-vars": "warn",
-            "@stylistic/js/semi": ["warn", "always"]
-        }
-    }
+            "@stylistic/js/semi": ["warn", "always"],
+        },
+    },
+    eslintConfigPrettier,
 ];

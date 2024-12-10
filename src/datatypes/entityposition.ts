@@ -27,7 +27,7 @@ export default class EntityPosition {
     get pitch(): number {
         return this._pitch;
     }
-    static fromVector3(v: Vector3, yaw:number, pitch:number): EntityPosition {
+    static fromVector3(v: Vector3, yaw: number, pitch: number): EntityPosition {
         return new EntityPosition(v.x, v.y, v.z, yaw, pitch);
     }
     static get zero(): EntityPosition {

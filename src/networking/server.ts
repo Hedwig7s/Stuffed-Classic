@@ -1,10 +1,11 @@
 import type { TCPSocketListener, Socket } from "bun";
 import { ArrayBufferSink } from "bun";
-import type { BaseProtocol, PacketIds } from "networking/protocol/baseprotocol";
+import type { BaseProtocol } from "networking/protocol/baseprotocol";
+import type { PacketIds } from "networking/protocol/basepacket";
 import type { ContextManager } from "contextmanager";
 import type { Player } from "entities/player";
 
-function writeFromSink(sink: ArrayBufferSink, socket: Socket<any>) {
+async function writeFromSink(sink: ArrayBufferSink, socket: Socket<any>) {
     const data = sink.flush() as Uint8Array;
     const wrote = socket.write(data);
     if (wrote < data.byteLength) {
@@ -23,34 +24,43 @@ export class Connection {
     protocol?: BaseProtocol;
     player?: Player;
     dataQueue: Uint8Array[] = [];
-    processing = false;
-    constructor(public readonly socket: Socket<SocketData>, public readonly context: ContextManager) {}
-
+    processingIncoming = false;
+    constructor(
+        public readonly socket: Socket<SocketData>,
+        public readonly context: ContextManager,
+        public readonly id: number
+    ) {}
+    onError(error: Error) {
+        console.error(error);
+        this.stop();
+    }
     async write(data: string | ArrayBuffer | Bun.BufferSource) {
         if (this.closed) {
-            throw new Error('Connection was closed');
+            throw new Error("Connection was closed");
         }
         this.socket.data.sink.write(data);
-        writeFromSink(this.socket.data.sink, this.socket);
+        await writeFromSink(this.socket.data.sink, this.socket).catch(
+            this.onError.bind(this)
+        );
     }
 
     queueData(data: Uint8Array) {
         this.dataQueue.push(data);
-        if (!this.processing) {
-            this.processQueue();
+        if (!this.processingIncoming) {
+            this.processQueue().catch(this.onError.bind(this));
         }
     }
 
     async processQueue() {
-        if (this.processing) return;
-        this.processing = true;
+        if (this.processingIncoming) return;
+        this.processingIncoming = true;
 
         while (this.dataQueue.length > 0) {
             const data = this.dataQueue.shift() ?? new Uint8Array();
             await this.processData(data);
         }
 
-        this.processing = false;
+        this.processingIncoming = false;
     }
 
     async processData(data: Uint8Array) {
@@ -59,13 +69,14 @@ export class Connection {
         try {
             const id = data[0];
             if (id === 0x00 && !this.protocol) {
-                let protocolVersion = data[1];
-                if (protocolVersion < 2 || protocolVersion > 7) {
-                    protocolVersion = 1; // Protocol 1 has no version
+                for (const protocol of Object.values(this.context.protocols)) {
+                    if (protocol.checkIdentifier(data)) {
+                        this.protocol = protocol;
+                        break;
+                    }
                 }
-                this.protocol = this.context.protocols[protocolVersion];
-                if (!this.protocol) {
-                    throw new Error(`Protocol ${protocolVersion} not found`);
+                if (this.protocol == null) {
+                    throw new Error(`Protocol not found`);
                 }
             }
 
@@ -91,8 +102,7 @@ export class Connection {
                 this.queueData(data.subarray(size));
             }
         } catch (error) {
-            console.error(error);
-            this.stop();
+            this.onError(error as Error);
         }
     }
 
@@ -103,12 +113,12 @@ export class Connection {
         try {
             this.socket.end();
             setTimeout(() => {
-                if (this.socket.readyState !== 'closed') {
+                if (this.socket.readyState !== "closed") {
                     this.socket.terminate();
                 }
             }, 1000);
-        } catch {
-            // Ignore errors (if the method fails there isn't much I can do)
+        } catch (error) {
+            console.error(error);
         }
         this.closed = true;
     }
@@ -118,6 +128,19 @@ export class Server {
     constructor(public readonly context: ContextManager) {}
     public host?: string;
     public port?: number;
+    public connectionCount = 0;
+    public stopped = false;
+    protected _connections = new Map<number, WeakRef<Connection>>();
+    public get connections() {
+        return Object.freeze(new Map(this._connections));
+    }
+    cleanConnections() {
+        for (const [id, connection] of this._connections) {
+            if (!connection.deref()) {
+                this._connections.delete(id);
+            }
+        }
+    }
     start(host: string, port: number) {
         this.host = host;
         this.port = port;
@@ -126,41 +149,85 @@ export class Server {
             port: this.port,
             socket: {
                 data: (socket, data) => {
-                    if (socket.data.connection) {
-                        socket.data.connection.queueData(new Uint8Array(data));
+                    try {
+                        if (socket.data.connection) {
+                            socket.data.connection.queueData(
+                                new Uint8Array(data)
+                            );
+                        }
+                    } catch {
+                        socket.end();
                     }
                 },
                 close: (socket) => {
-                    console.log('Socket closed');
-                    if (socket.data.connection) {
-                        socket.data.connection.stop();
+                    try {
+                        console.log("Socket closed");
+                        if (socket.data.connection) {
+                            socket.data.connection.stop();
+                        }
+                    } catch (error) {
+                        console.error(error);
                     }
                 },
                 error: (socket, error) => {
                     console.log(`Socket error: ${error}`);
                 },
                 open: (socket) => {
-                    console.log('Socket connected');
-                    socket.data = {
-                        connection: new Connection(socket, this.context),
-                        faucet: new ArrayBufferSink(),
-                        sink: new ArrayBufferSink()
-                    };
-                    socket.data.faucet.start({ stream: true, highWaterMark: 1024 });
-                    socket.data.sink.start({ stream: true, highWaterMark: 1024 });
+                    try {
+                        console.log("Socket connected");
+                        const id = this.connectionCount;
+                        this.connectionCount++;
+                        socket.data = {
+                            connection: new Connection(
+                                socket,
+                                this.context,
+                                id
+                            ),
+                            faucet: new ArrayBufferSink(),
+                            sink: new ArrayBufferSink(),
+                        };
+                        socket.data.faucet.start({
+                            stream: true,
+                            highWaterMark: 1024,
+                        });
+                        socket.data.sink.start({
+                            stream: true,
+                            highWaterMark: 1024,
+                        });
+                        this.connections.set(
+                            id,
+                            new WeakRef(socket.data.connection)
+                        );
+                    } catch (error) {
+                        console.error(error);
+                        socket.end();
+                    }
                 },
                 drain: (socket) => {
-                    console.log('Socket drained');
-                    writeFromSink(socket.data.sink, socket);
-                }
-            }
+                    try {
+                        console.log("Socket drained");
+                        writeFromSink(socket.data.sink, socket);
+                    } catch (error) {
+                        console.error(error);
+                        socket.end();
+                    }
+                },
+            },
         });
+        const cleanupInterval = setInterval(() => {
+            if (this.stopped) {
+                clearInterval(cleanupInterval);
+                return;
+            }
+            this.cleanConnections();
+        }, 30000);
         console.log(`Server started at ${this.host}:${this.port}`);
     }
 
     stop() {
         this.server?.stop();
-        console.log('Server stopped');
+        this.stopped = true;
+        console.log("Server stopped");
     }
 }
 export default Server;

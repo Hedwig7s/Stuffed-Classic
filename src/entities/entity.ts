@@ -15,7 +15,7 @@ export class Entity {
     protected _position: EntityPosition;
     public get position(): EntityPosition {
         return this._position;
-    };
+    }
     public readonly ids = new Map<EntityRegistry, string>();
     public name: string;
     public readonly context: ContextManager;
@@ -24,13 +24,21 @@ export class Entity {
     public readonly registries: EntityRegistry[] = [];
     public world?: World;
     public worldEntityId = -1; // Entity id within a world
-    protected static finalizationRegistry = new FinalizationRegistry<Entity>(this.cleanup);
+    protected static finalizationRegistry = new FinalizationRegistry<Entity>(
+        this.cleanup
+    );
     protected static cleanup(entity: Entity) {
         if (!entity.destroyed) {
             entity.destroy();
         }
     }
-    constructor({ name, position, context, register, unregister }: EntityOptions) {
+    constructor({
+        name,
+        position,
+        context,
+        register,
+        unregister,
+    }: EntityOptions) {
         this.context = context;
         this.unregister = unregister ?? true;
         if (register ?? true) {
@@ -38,16 +46,29 @@ export class Entity {
         }
         this._position = position ?? EntityPosition.zero;
         this.name = name;
-        this.destroyed = false;   
+        this.destroyed = false;
     }
 
     move(position: EntityPosition) {
         this._position = position;
     }
-
-    spawn(world: World) {
-        // TODO: Implement
+    loadWorld(world: World) {
+        const currentWorld = this.world;
+        if (currentWorld === world) {
+            return;
+        }
+        if (currentWorld) {
+            currentWorld.unregisterEntity(this);
+        }
         this.world = world;
+        this.world.registerEntity(this);
+        this.spawn();
+    }
+    spawn() {
+        if (!this.world) {
+            throw new Error("Entity has no world");
+        }
+        this._position = this.world.spawn;
     }
 
     destroy() {

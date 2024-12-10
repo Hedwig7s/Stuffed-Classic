@@ -87,5 +87,5 @@ export const BLOCK_VERSION_REPLACEMENTS = {
         [BlockIds.iron]: BlockIds.ironOre,
         [BlockIds.doubleSlab]: BlockIds.stone,
         [BlockIds.mossyCobblestone]: BlockIds.cobblestone,
-    }
+    },
 };
