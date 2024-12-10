@@ -61,19 +61,21 @@ function zlibCallbackToPromise<T extends (buf: zlib.InputType, callback: zlib.Co
 
 export default class HWorldParser extends BaseWorldParser {
     async decode(data: Uint8Array) {
-        const HEADER = HEADER_PARSER.parse(data.subarray(0, 4+2+2+2+2+2+2+1+1));
+        const HEADER = HEADER_PARSER.parse(data.subarray(0, 18));
         const SIZE = new Vector3(HEADER.sizeX, HEADER.sizeY, HEADER.sizeZ);
         const SPAWN = new EntityPosition(HEADER.spawnX, HEADER.spawnY, HEADER.spawnZ, HEADER.spawnYaw, HEADER.spawnPitch);
         const BLOCKS = new Uint8Array(SIZE.product()).fill(0);
-        let compressedBlocks = data.subarray(4+2+2+2+2+2+2+1+1);
+        let compressedBlocks = data.subarray(18);
         if (HEADER.version >= 3) {
             const TEMP_BLOCKS = await zlibCallbackToPromise(zlib.inflate)(compressedBlocks);
             compressedBlocks = new Uint8Array(TEMP_BLOCKS.buffer,TEMP_BLOCKS.byteOffset,TEMP_BLOCKS.byteLength);
         }
+        let blockIndex = 0;
         for (let i = 0; i < compressedBlocks.byteLength; i+=5) {
             const BLOCK = BLOCK_PARSER.parse(compressedBlocks.subarray(i, i+5));
             for (let j = 0; j < BLOCK.count; j++) {
-                BLOCKS[i+j] = BLOCK.id;
+                BLOCKS[blockIndex] = BLOCK.id;
+                blockIndex++;
             }
         }
         return {

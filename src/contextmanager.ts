@@ -61,6 +61,13 @@ export class ContextManager {
                         spawn: new EntityPosition(0, 0, 0, 0, 0),
                         context: this,
                     });
+                    for (let x = 0; x < 100; x++) {
+                        for(let y = 0; y < 60; y++) {
+                            for (let z = 0; z < 100; z++) {
+                                this.defaultWorld.setBlock(new Vector3(x,y,z), y <= 30 ? 1 : 0)
+                            }
+                        }
+                    }
                 }
             )
             .finally(() => {
