@@ -66,7 +66,9 @@ export class PingPacket7 extends Packet<BasePacketData> {
         .bigEndian()
         .uint8("id")
         .build();
-    async receiver(connection: Connection, data: Uint8Array) {}
+    async receiver(connection: Connection, data: Uint8Array) {
+        // Doesn't need to do anything
+    }
 }
 
 export class LevelInitializePacket7 extends Packet<BasePacketData> {

@@ -52,12 +52,14 @@ export class Player extends Entity {
         await world.pack(
             this.connection.protocol.version,
             (data, size, percent) => {
+                // The ! is fine as the sender and connection are checked above
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 dataPacket.sender!(this.connection!, {
-                    // The ! is fine as the sender and connection are checked above
                     chunkLength: size,
                     chunkData: data,
                     percentComplete: percent,
-                }).catch(this.connection!.onError.bind(this.connection!));
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                }).catch(this.connection?.onError.bind(this.connection!));
             }
         );
         await finalizePacket

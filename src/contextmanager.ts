@@ -62,16 +62,21 @@ export class ContextManager {
                         context: this,
                     });
                     for (let x = 0; x < 100; x++) {
-                        for(let y = 0; y < 60; y++) {
+                        for (let y = 0; y < 60; y++) {
                             for (let z = 0; z < 100; z++) {
-                                this.defaultWorld.setBlock(new Vector3(x,y,z), y <= 30 ? 1 : 0)
+                                this.defaultWorld.setBlock(
+                                    new Vector3(x, y, z),
+                                    y <= 30 ? 1 : 0
+                                );
                             }
                         }
                     }
                 }
             )
             .finally(() => {
-                this.worldManager.addWorld(this.defaultWorld!);
+                if (this.defaultWorld) {
+                    this.worldManager.addWorld(this.defaultWorld);
+                }
             });
         this.server = new Server(this);
         this.protocols = {

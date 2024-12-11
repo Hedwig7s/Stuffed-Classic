@@ -1,5 +1,5 @@
 import { readFile, writeFile, exists, mkdir } from "fs/promises";
-import { join as joinPath, parse } from "path";
+import { join as joinPath } from "path";
 import * as toml from "smol-toml";
 import { CONFIG_PATH } from "data/constants";
 
@@ -93,13 +93,7 @@ export interface ConfigOptions<T extends ConfigData = ConfigData> {
 }
 
 export class Config<T extends ConfigData = ConfigData> {
-    private __config!: ConfigObject<T>; // It's set by _config
-    protected set _config(value: ConfigObject<T>) {
-        this.__config = structuredClone(value);
-    }
-    protected get _config() {
-        return this.__config;
-    }
+    private _config: ConfigObject<T>;
     public get config() {
         return createProxy(this._config, this.defaultConfig);
     }

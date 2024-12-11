@@ -30,7 +30,6 @@ export abstract class Packet<T extends BasePacketData> {
     }
     abstract receiver?(connection: Connection, data: Uint8Array): Promise<void>;
 }
-
 export enum PacketIds {
     Identification = 0x00,
     Ping = 0x01,
