@@ -16,7 +16,7 @@ export interface IdentificationPacketData extends BasePacketData {
 
 export class IdentificationPacket7 extends Packet<IdentificationPacketData> {
     name = "Identification";
-    id = PacketIds.Identification;
+    id = PacketIds.identification;
     size = 1 + 1 + 64 + 64 + 1;
     parser = new ParserBuilder<IdentificationPacketData>()
         .bigEndian()
@@ -60,9 +60,9 @@ export class IdentificationPacket7 extends Packet<IdentificationPacketData> {
 
 export class PingPacket7 extends Packet<BasePacketData> {
     name = "Ping";
-    id = PacketIds.Ping;
+    id = PacketIds.ping;
     size = 1;
-    parser = new ParserBuilder<IdentificationPacketData>()
+    parser = new ParserBuilder<BasePacketData>()
         .bigEndian()
         .uint8("id")
         .build();
@@ -73,9 +73,9 @@ export class PingPacket7 extends Packet<BasePacketData> {
 
 export class LevelInitializePacket7 extends Packet<BasePacketData> {
     name = "LevelInitialize";
-    id = PacketIds.LevelInitialize;
+    id = PacketIds.levelInitialize;
     size = 1;
-    parser = new ParserBuilder<IdentificationPacketData>()
+    parser = new ParserBuilder<BasePacketData>()
         .bigEndian()
         .uint8("id")
         .build();
@@ -90,7 +90,7 @@ export interface LevelDataChunkPacketData extends BasePacketData {
 
 export class LevelDataChunkPacket7 extends Packet<LevelDataChunkPacketData> {
     name = "LevelDataChunk";
-    id = PacketIds.LevelDataChunk;
+    id = PacketIds.levelDataChunk;
     size = 1 + 2 + 1024 + 1;
     parser = new ParserBuilder<LevelDataChunkPacketData>()
         .bigEndian()
@@ -103,29 +103,29 @@ export class LevelDataChunkPacket7 extends Packet<LevelDataChunkPacketData> {
 }
 
 export interface LevelFinalizePacketData extends BasePacketData {
-    x: number;
-    y: number;
-    z: number;
+    worldSizeX: number;
+    worldSizeY: number;
+    worldSizeZ: number;
 }
 
 export class LevelFinalizePacket7 extends Packet<LevelFinalizePacketData> {
     name = "LevelFinalize";
-    id = PacketIds.LevelFinalize;
+    id = PacketIds.levelFinalize;
     size = 1 + 2 + 2 + 2;
     parser = new ParserBuilder<LevelFinalizePacketData>()
         .bigEndian()
         .uint8("id")
-        .int16("x")
-        .int16("y")
-        .int16("z")
+        .int16("worldSizeX")
+        .int16("worldSizeY")
+        .int16("worldSizeZ")
         .build();
     receiver = undefined;
 }
 
 export const Packets = {
-    [PacketIds.Identification]: IdentificationPacket7,
-    [PacketIds.Ping]: PingPacket7,
-    [PacketIds.LevelInitialize]: LevelInitializePacket7,
-    [PacketIds.LevelDataChunk]: LevelDataChunkPacket7,
-    [PacketIds.LevelFinalize]: LevelFinalizePacket7,
+    [PacketIds.identification]: IdentificationPacket7,
+    [PacketIds.ping]: PingPacket7,
+    [PacketIds.levelInitialize]: LevelInitializePacket7,
+    [PacketIds.levelDataChunk]: LevelDataChunkPacket7,
+    [PacketIds.levelFinalize]: LevelFinalizePacket7,
 };

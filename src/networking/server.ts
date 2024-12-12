@@ -29,10 +29,17 @@ export class Connection {
         public readonly socket: Socket<SocketData>,
         public readonly context: ContextManager,
         public readonly id: number
-    ) {}
+    ) {
+        setTimeout(()=> {
+            if (!this.protocol && !this.closed) {
+                console.warn("Handshake timeout");
+                this.close();
+            }
+        }, 10000);
+    }
     onError(error: Error) {
         console.error(error);
-        this.stop();
+        this.close();
     }
     async write(data: string | ArrayBuffer | Bun.BufferSource) {
         if (this.closed) {
@@ -106,7 +113,7 @@ export class Connection {
         }
     }
 
-    stop() {
+    close() {
         if (this.closed) {
             return;
         }
@@ -163,7 +170,7 @@ export class Server {
                     try {
                         console.log("Socket closed");
                         if (socket.data.connection) {
-                            socket.data.connection.stop();
+                            socket.data.connection.close();
                         }
                     } catch (error) {
                         console.error(error);
@@ -224,7 +231,7 @@ export class Server {
         console.log(`Server started at ${this.host}:${this.port}`);
     }
 
-    stop() {
+    close() {
         this.server?.stop();
         this.stopped = true;
         console.log("Server stopped");

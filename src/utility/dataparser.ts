@@ -1,21 +1,24 @@
 import * as iconv from "iconv-lite";
 
-interface Format {
+export type ParserData<T> = {
+    [K in keyof T as T[K] extends string | number | bigint | Uint8Array ? K : never]: T[K];
+};
+interface Format<T extends ParserData<T>> {
     name: string;
-    key: string;
+    key: keyof T;
     size: number;
 }
 export interface IntOptions {
     size: number;
     signed: boolean;
 }
-type IntFormat = Format & IntOptions;
+type IntFormat<T extends ParserData<T>> = Format<T> & IntOptions;
 export interface StringOptions {
     type: "fixed" | "zero-terminated";
     length?: number;
     encoding?: string;
 }
-type StringFormat = Format &
+type StringFormat<T extends ParserData<T>> = Format<T> &
     StringOptions & {
         encoding: string;
     };
@@ -24,12 +27,12 @@ export interface FixedOptions {
     point: number;
     signed: boolean;
 }
-type FixedFormat = Format & FixedOptions;
+type FixedFormat<T extends ParserData<T>> = Format<T> & FixedOptions;
 
 export interface RawOptions {
     size: number;
 }
-type RawFormat = Format & RawOptions;
+type RawFormat<T extends ParserData<T>> = Format<T> & RawOptions;
 
 const nativeEndianness: "big" | "little" = (() => {
     const b = new ArrayBuffer(4);
@@ -42,7 +45,7 @@ const nativeEndianness: "big" | "little" = (() => {
 })();
 
 function parseInt(
-    format: IntFormat,
+    format: IntFormat<any>,
     data: Uint8Array,
     endianness: "big" | "little"
 ): bigint {
@@ -66,7 +69,7 @@ function parseInt(
 }
 
 function encodeInt(
-    format: IntFormat,
+    format: IntFormat<any>,
     value: number | bigint,
     endianness: "big" | "little"
 ): Uint8Array {
@@ -74,7 +77,7 @@ function encodeInt(
     let num = value;
     if (format.signed && num < 0) {
         if (num < -(1 << (format.size * 8))) {
-            throw new Error(`Integer ${format.key} out of range`);
+            throw new Error(`Integer ${String(format.key)} out of range`);
         }
         if (typeof num === 'bigint') {
             num = (num >> 0n) + (1n << BigInt(format.size * 8));
@@ -97,13 +100,13 @@ function encodeInt(
     return out;
 }
 
-class BinaryParser<T extends object> {
-    public readonly formatList: Format[];
+class BinaryParser<T extends ParserData<T>> {
+    public readonly formatList: Format<T>[];
     protected endianness: "little" | "big";
 
     public readonly size: number|undefined; // Undefined = variable size
 
-    constructor(formatList: Format[]) {
+    constructor(formatList: Format<T>[]) {
         this.formatList = formatList;
         this.endianness = nativeEndianness;
         let size: number|undefined = 0;
@@ -118,7 +121,7 @@ class BinaryParser<T extends object> {
     }
 
     parse(data: Uint8Array): T {
-        const parsed: Record<string, number | bigint | string | Uint8Array> = {};
+        const parsed: Partial<T> = {};
         let offset = 0;
         this.endianness = nativeEndianness;
         for (const format of this.formatList) {
@@ -136,7 +139,7 @@ class BinaryParser<T extends object> {
                     break;
                 }
                 case "integer": {
-                    const intFormat = format as IntFormat;
+                    const intFormat = format as IntFormat<T>;
                     if (offset + intFormat.size - 1 >= data.length) {
                         throw new Error("Integer out of range");
                     }
@@ -152,11 +155,11 @@ class BinaryParser<T extends object> {
                     if (result <= Number.MAX_SAFE_INTEGER && result >= Number.MIN_SAFE_INTEGER) {
                         result = Number(result);
                     }
-                    parsed[intFormat.key] = result;
+                    parsed[intFormat.key] = result as T[keyof T];
                     break;
                 }
                 case "string": {
-                    const stringFormat = format as StringFormat;
+                    const stringFormat = format as StringFormat<T>;
                     const decode = function (slice: Uint8Array): string {
                         return new TextDecoder(stringFormat.encoding).decode(
                             slice
@@ -176,7 +179,7 @@ class BinaryParser<T extends object> {
                                 if (b === 0) {
                                     parsed[stringFormat.key] = decode(
                                         slice.subarray(0, size)
-                                    );
+                                    ) as T[keyof T];
                                     offset += size + 1;
                                     break;
                                 }
@@ -200,7 +203,7 @@ class BinaryParser<T extends object> {
                                 offset,
                                 (offset += stringFormat.length)
                             );
-                            parsed[stringFormat.key] = decode(slice);
+                            parsed[stringFormat.key] = decode(slice) as T[keyof T];
                             break;
                         }
                         default: {
@@ -218,7 +221,7 @@ class BinaryParser<T extends object> {
                     parsed[format.key] = new DataView(data.buffer).getFloat32(
                         offset,
                         this.endianness === "little"
-                    );
+                    ) as T[keyof T];
                     offset += 4;
                     break;
                 }
@@ -229,12 +232,12 @@ class BinaryParser<T extends object> {
                     parsed[format.key] = new DataView(data.buffer).getFloat64(
                         offset,
                         this.endianness === "little"
-                    );
+                    ) as T[keyof T];
                     offset += 8;
                     break;
                 }
                 case "fixed": {
-                    const fixedFormat = format as FixedFormat;
+                    const fixedFormat = format as FixedFormat<T>;
                     if (offset + fixedFormat.size - 1 >= data.length) {
                         throw new Error("Fixed out of range");
                     }
@@ -255,11 +258,11 @@ class BinaryParser<T extends object> {
                     if (!Number.isFinite(result)) {
                         throw new Error("Resulting float is too large");
                     }
-                    parsed[fixedFormat.key] = result;
+                    parsed[fixedFormat.key] = result as T[keyof T];
                     break;
                 }
                 case "raw": {
-                    const rawFormat = format as RawFormat;
+                    const rawFormat = format as RawFormat<T>;
                     if (offset + rawFormat.size - 1 >= data.length) {
                         throw new Error("Fixed out of range");
                     }
@@ -267,7 +270,7 @@ class BinaryParser<T extends object> {
                         offset,
                         (offset += rawFormat.size)
                     );
-                    parsed[rawFormat.key] = slice;
+                    parsed[rawFormat.key] = slice as T[keyof T];
                     break;
                 }
                 default: {
@@ -277,7 +280,7 @@ class BinaryParser<T extends object> {
         }
         for (const format of this.formatList) {
             if (parsed[format.key] == null && !format.name.endsWith("endian")) {
-                throw new Error(`Incomplete data: Key ${format.key} not found`);
+                throw new Error(`Incomplete data: Key ${String(format.key)} not found`);
             }
         }
 
@@ -287,7 +290,7 @@ class BinaryParser<T extends object> {
         for (const format of this.formatList) {
             const value = data[format.key as keyof T];
             if (value == null && !format.name.endsWith("endian")) {
-                return [false, `Key ${format.key} not found in data`];
+                return [false, `Key ${String(format.key)} not found in data`];
             }
         }
         return [true];
@@ -314,7 +317,7 @@ class BinaryParser<T extends object> {
         for (const format of this.formatList) {
             const value = data[format.key as keyof T];
             if (value == null && !format.name.endsWith("endian")) {
-                throw new Error(`Key ${format.key} not found in data`);
+                throw new Error(`Key ${String(format.key)} not found in data`);
             }
             switch (format.name) {
                 case "native-endian": {
@@ -331,12 +334,12 @@ class BinaryParser<T extends object> {
                 }
                 case "integer": {
                     if (typeof value !== "number" && typeof value !== "bigint") {
-                        throw new Error(`Key ${format.key} is not a number`);
+                        throw new Error(`Key ${String(format.key)} is not a number`);
                     }
                     if (typeof value !== "bigint" && value % 1 !== 0) {
-                        throw new Error(`Key ${format.key} is not an integer`);
+                        throw new Error(`Key ${String(format.key)} is not an integer`);
                     }
-                    const intFormat = format as IntFormat;
+                    const intFormat = format as IntFormat<T>;
                     checkSize(intFormat.size);
                     out.set(
                         encodeInt(intFormat, value, this.endianness),
@@ -347,10 +350,11 @@ class BinaryParser<T extends object> {
                 }
                 case "string": {
                     if (typeof value !== "string") {
-                        throw new Error(`Key ${format.key} is not a string`);
+                        throw new Error(`Key ${String(format.key)} is not a string`);
                     }
-                    const stringFormat = format as StringFormat;
-                    let padLength = value.length;
+                    const str = value as string;
+                    const stringFormat = format as StringFormat<T>;
+                    let padLength = str.length;
                     if (
                         stringFormat.type === "fixed" &&
                         stringFormat.length == null
@@ -361,9 +365,9 @@ class BinaryParser<T extends object> {
                     }
                     if (
                         stringFormat.type === "fixed" &&
-                        value.length > padLength
+                        str.length > padLength
                     ) {
-                        throw new Error(`String ${format.key} is too long`);
+                        throw new Error(`String ${String(format.key)} is too long`);
                     }
                     const encoding = stringFormat.encoding || "utf-8";
                     if (!iconv.encodingExists(encoding)) {
@@ -371,8 +375,8 @@ class BinaryParser<T extends object> {
                     }
                     const encodedValue =
                         stringFormat.type === "zero-terminated"
-                            ? value + "\0"
-                            : value.padEnd(padLength, " ");
+                            ? str + "\0"
+                            : str.padEnd(padLength, " ");
                     const encoded = new Uint8Array(
                         iconv.encode(encodedValue, encoding)
                     );
@@ -384,7 +388,7 @@ class BinaryParser<T extends object> {
                 }
                 case "float": {
                     if (typeof value !== "number") {
-                        throw new Error(`Key ${format.key} is not a number`);
+                        throw new Error(`Key ${String(format.key)} is not a number`);
                     }
                     checkSize(4);
                     new DataView(out.buffer).setFloat32(
@@ -397,7 +401,7 @@ class BinaryParser<T extends object> {
                 }
                 case "double": {
                     if (typeof value !== "number") {
-                        throw new Error(`Key ${format.key} is not a number`);
+                        throw new Error(`Key ${String(format.key)} is not a number`);
                     }
                     checkSize(8);
                     new DataView(out.buffer).setFloat64(
@@ -410,9 +414,9 @@ class BinaryParser<T extends object> {
                 }
                 case "fixed": {
                     if (typeof value !== "number") {
-                        throw new Error(`Key ${format.key} is not a number`);
+                        throw new Error(`Key ${String(format.key)} is not a number`);
                     }
-                    const fixedFormat = format as FixedFormat;
+                    const fixedFormat = format as FixedFormat<T>;
                     const fixedValue = Math.floor(
                         value * (1 << fixedFormat.point)
                     );
@@ -421,7 +425,7 @@ class BinaryParser<T extends object> {
                         fixedValue >= 1 << (fixedFormat.size * 8 - 1)
                     ) {
                         throw new Error(
-                            `Fixed value ${format.key} out of range`
+                            `Fixed value ${String(format.key)} out of range`
                         );
                     }
                     checkSize(fixedFormat.size);
@@ -437,18 +441,19 @@ class BinaryParser<T extends object> {
                     break;
                 }
                 case "raw": {
-                    if (!(value instanceof Uint8Array)) {
+                    if (!((value as any) instanceof Uint8Array)) {
                         throw new Error(
-                            `Key ${format.key} is not a Uint8Array!`
+                            `Key ${String(format.key)} is not a Uint8Array!`
                         );
                     }
-                    const rawFormat = format as RawFormat;
-                    if (value.byteLength > rawFormat.size) {
+                    const array = value as Uint8Array;
+                    const rawFormat = format as RawFormat<T>;
+                    if (array.byteLength > rawFormat.size) {
                         throw new Error("Provided Uint8Array is too big!");
                     }
                     checkSize(rawFormat.size);
                     const newarray = new Uint8Array(rawFormat.size).fill(0);
-                    newarray.set(value);
+                    newarray.set(array);
                     out.set(newarray, offset);
                     offset += rawFormat.size;
                     break;
@@ -461,11 +466,11 @@ class BinaryParser<T extends object> {
         return out.subarray(0, offset);
     }
 }
-export type BinaryParserType<T extends object> = BinaryParser<T>;
-export class ParserBuilder<T extends object> {
-    private formatList: Format[] = [];
+export type BinaryParserType<T extends ParserData<T>> = BinaryParser<T>;
+export class ParserBuilder<T extends ParserData<T>> {
+    private formatList: Format<any>[] = [];
 
-    integer(key: string, options: IntOptions): this {
+    integer(key: keyof T, options: IntOptions): this {
         this.formatList.push({
             name: "integer",
             key: key,
@@ -474,57 +479,57 @@ export class ParserBuilder<T extends object> {
         return this;
     }
 
-    uint8(key: string): this {
+    uint8(key: keyof T): this {
         return this.integer(key, {
             size: 1,
             signed: false,
         });
     }
 
-    int8(key: string) {
+    int8(key: keyof T) {
         return this.integer(key, {
             size: 1,
             signed: true,
         });
     }
-    uint16(key: string) {
+    uint16(key: keyof T) {
         return this.integer(key, {
             size: 2,
             signed: false,
         });
     }
-    int16(key: string) {
+    int16(key: keyof T) {
         return this.integer(key, {
             size: 2,
             signed: true,
         });
     }
-    uint32(key: string) {
+    uint32(key: keyof T) {
         return this.integer(key, {
             size: 4,
             signed: false,
         });
     }
-    int32(key: string) {
+    int32(key: keyof T) {
         return this.integer(key, {
             size: 4,
             signed: true,
         });
     }
-    uint64(key: string) {
+    uint64(key: keyof T) {
         return this.integer(key, {
             size: 8,
             signed: false,
         });
     }
-    int64(key: string) {
+    int64(key: keyof T) {
         return this.integer(key, {
             size: 8,
             signed: true,
         });
     }
 
-    float(key: string): this {
+    float(key: keyof T): this {
         this.formatList.push({
             name: "float",
             key: key,
@@ -533,7 +538,7 @@ export class ParserBuilder<T extends object> {
         return this;
     }
 
-    double(key: string): this {
+    double(key: keyof T): this {
         this.formatList.push({
             name: "double",
             key: key,
@@ -542,7 +547,7 @@ export class ParserBuilder<T extends object> {
         return this;
     }
 
-    fixed(key: string, options: FixedOptions): this {
+    fixed(key: keyof T, options: FixedOptions): this {
         if (options.point > options.size * 8) {
             throw new Error("Fixed point out of range");
         }
@@ -554,8 +559,8 @@ export class ParserBuilder<T extends object> {
         return this;
     }
 
-    string(key: string, options: StringOptions): this {
-        const format: StringFormat = {
+    string(key: keyof T, options: StringOptions): this {
+        const format: StringFormat<T> = {
             name: "string",
             key: key,
             ...options,
@@ -566,22 +571,22 @@ export class ParserBuilder<T extends object> {
         return this;
     }
 
-    zeroTerminatedString(key: string, encoding?: string): this {
+    zeroTerminatedString(key: keyof T, encoding?: string): this {
         return this.string(key, {
             type: "zero-terminated",
             encoding: encoding,
         });
     }
 
-    fixedString(key: string, length: number, encoding?: string): this {
+    fixedString(key: keyof T, length: number, encoding?: string): this {
         return this.string(key, {
             type: "fixed",
             length: length,
             encoding: encoding,
         });
     }
-    raw(key: string, size: number) {
-        const format: RawFormat = {
+    raw(key: keyof T, size: number) {
+        const format: RawFormat<T> = {
             size: size,
             name: "raw",
             key: key,

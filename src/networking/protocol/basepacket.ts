@@ -15,7 +15,7 @@ export interface BasePacketData {
     id: number;
 }
 
-export abstract class Packet<T extends BasePacketData> {
+export abstract class Packet<T extends object> {
     abstract name: string;
     abstract id: number;
     abstract parser: BinaryParser<T>;
@@ -31,11 +31,13 @@ export abstract class Packet<T extends BasePacketData> {
     abstract receiver?(connection: Connection, data: Uint8Array): Promise<void>;
 }
 export enum PacketIds {
-    Identification = 0x00,
-    Ping = 0x01,
-    LevelInitialize = 0x02,
-    LevelDataChunk = 0x03,
-    LevelFinalize = 0x04,
+    identification = 0x00,
+    ping = 0x01,
+    levelInitialize = 0x02,
+    levelDataChunk = 0x03,
+    levelFinalize = 0x04,
+    setBlockClient = 0x05,
+    setBlockServer = 0x06,
 }
 
 export function assertPacket<T extends BasePacketData>(

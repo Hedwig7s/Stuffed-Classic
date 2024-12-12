@@ -25,7 +25,6 @@ import zlib from "zlib";
 
 import type { WorldOptions, World } from "data/worlds/world";
 import { concatUint8Arrays } from "uint8array-extras";
-import { writeFile } from "fs/promises";
 
 interface V2Header {
     version: number;
@@ -112,7 +111,7 @@ function zlibCallbackToPromise<
     };
 }
 
-function getHeaderParser(version: number): BinaryParserType<V2Header|V4Header> {
+function getHeaderParser(version: number): typeof V4HEADER_PARSER|typeof V2HEADER_PARSER {
     if (version === 4) {
         return V4HEADER_PARSER;
     } else if (version >= 2 && version <= 3) {
@@ -140,7 +139,7 @@ export default class HWorldParser extends BaseWorldParser {
             HEADER.spawnPitch
         );
         const BLOCKS = new Uint8Array(SIZE.product()).fill(0);
-        let compressedBlocks = data.subarray(HEADER_PARSER.size,"blockDataSize" in HEADER ? HEADER_PARSER.size+HEADER.blockDataSize : undefined);
+        let compressedBlocks = data.subarray(HEADER_PARSER.size,"blockDataSize" in HEADER ? HEADER_PARSER.size+(HEADER.blockDataSize as number) : undefined);
         if (VERSION >= 3) {
             const TEMP_BLOCKS = await zlibCallbackToPromise(zlib.inflate)(
                 compressedBlocks
