@@ -16,15 +16,15 @@ export interface BasePacketData {
 }
 
 export abstract class Packet<T extends object> {
-    abstract name: string;
-    abstract id: number;
-    abstract parser: BinaryParser<T>;
-    abstract size: number;
+    public abstract readonly name: string;
+    public abstract readonly id: number;
+    public abstract readonly parser: BinaryParser<T>;
+    public abstract readonly size: number;
     async sender?(connection: Connection, data: Omit<T, "id">) {
         const newData = {
             id: this.id,
             ...data,
-        };
+        } as T;
         const parsed = this.parser.encode(newData as T);
         connection.write(parsed).catch(connection.onError.bind(connection));
     }
@@ -52,4 +52,14 @@ export function assertPacket<T extends BasePacketData>(
         throw new Error(`Packet ${name} not found`);
     }
     return packet as unknown as Packet<T>;
+}
+
+export function assertParserSize(parser?:BinaryParser<any>): number {
+    if (!parser) {
+        throw new Error("No parser");
+    }
+    if (parser.size === undefined) {
+        throw new Error("No parser size");
+    }
+    return parser.size;
 }

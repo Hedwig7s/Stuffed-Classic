@@ -1,9 +1,11 @@
 import type { BasePacketData } from "networking/protocol/basepacket";
-import { Packet, PacketIds } from "networking/protocol/basepacket";
+import { Packet, PacketIds, assertParserSize } from "networking/protocol/basepacket";
 import { assertPacket, STRING_OPTIONS } from "networking/protocol/basepacket";
-import { ParserBuilder } from "utility/dataparser";
+import { ParserBuilder, type BinaryParserType as BinaryParser } from "utility/dataparser";
 import type { Connection } from "networking/server";
 import Player from "entities/player";
+import Vector3 from "datatypes/vector3";
+import { BlockIds } from "data/blocks";
 
 const PROTOCOL_VERSION = 7;
 
@@ -15,17 +17,24 @@ export interface IdentificationPacketData extends BasePacketData {
 }
 
 export class IdentificationPacket7 extends Packet<IdentificationPacketData> {
-    name = "Identification";
-    id = PacketIds.identification;
-    size = 1 + 1 + 64 + 64 + 1;
-    parser = new ParserBuilder<IdentificationPacketData>()
-        .bigEndian()
-        .uint8("id")
-        .uint8("protocol")
-        .string("name", STRING_OPTIONS)
-        .string("keyOrMotd", STRING_OPTIONS)
-        .uint8("userType")
-        .build();
+    public readonly name = "Identification";
+    public readonly id = PacketIds.identification;
+    public readonly size: number;
+    public readonly parser: BinaryParser<IdentificationPacketData>;
+
+    constructor() {
+        super();
+        this.parser = new ParserBuilder<IdentificationPacketData>()
+            .bigEndian()
+            .uint8("id")
+            .uint8("protocol")
+            .string("name", STRING_OPTIONS)
+            .string("keyOrMotd", STRING_OPTIONS)
+            .uint8("userType")
+            .build();
+        this.size = assertParserSize(this.parser);
+    }
+
     async receiver(connection: Connection, data: Uint8Array) {
         const clientPacket = assertPacket<IdentificationPacketData>(
             connection.protocol,
@@ -59,26 +68,40 @@ export class IdentificationPacket7 extends Packet<IdentificationPacketData> {
 }
 
 export class PingPacket7 extends Packet<BasePacketData> {
-    name = "Ping";
-    id = PacketIds.ping;
-    size = 1;
-    parser = new ParserBuilder<BasePacketData>()
-        .bigEndian()
-        .uint8("id")
-        .build();
+    public readonly name = "Ping";
+    public readonly id = PacketIds.ping;
+    public readonly size: number;
+    public readonly parser: BinaryParser<BasePacketData>;
+
+    constructor() {
+        super();
+        this.parser = new ParserBuilder<BasePacketData>()
+            .bigEndian()
+            .uint8("id")
+            .build();
+        this.size = assertParserSize(this.parser);
+    }
+
     async receiver(connection: Connection, data: Uint8Array) {
         // Doesn't need to do anything
     }
 }
 
 export class LevelInitializePacket7 extends Packet<BasePacketData> {
-    name = "LevelInitialize";
-    id = PacketIds.levelInitialize;
-    size = 1;
-    parser = new ParserBuilder<BasePacketData>()
-        .bigEndian()
-        .uint8("id")
-        .build();
+    public readonly name = "LevelInitialize";
+    public readonly id = PacketIds.levelInitialize;
+    public readonly size: number;
+    public readonly parser: BinaryParser<BasePacketData>;
+
+    constructor() {
+        super();
+        this.parser = new ParserBuilder<BasePacketData>()
+            .bigEndian()
+            .uint8("id")
+            .build();
+        this.size = assertParserSize(this.parser);
+    }
+
     receiver = undefined;
 }
 
@@ -89,16 +112,23 @@ export interface LevelDataChunkPacketData extends BasePacketData {
 }
 
 export class LevelDataChunkPacket7 extends Packet<LevelDataChunkPacketData> {
-    name = "LevelDataChunk";
-    id = PacketIds.levelDataChunk;
-    size = 1 + 2 + 1024 + 1;
-    parser = new ParserBuilder<LevelDataChunkPacketData>()
-        .bigEndian()
-        .uint8("id")
-        .int16("chunkLength")
-        .raw("chunkData", 1024)
-        .uint8("percentComplete")
-        .build();
+    public readonly name = "LevelDataChunk";
+    public readonly id = PacketIds.levelDataChunk;
+    public readonly size: number;
+    public readonly parser: BinaryParser<LevelDataChunkPacketData>;
+
+    constructor() {
+        super();
+        this.parser = new ParserBuilder<LevelDataChunkPacketData>()
+            .bigEndian()
+            .uint8("id")
+            .int16("chunkLength")
+            .raw("chunkData", 1024)
+            .uint8("percentComplete")
+            .build();
+        this.size = assertParserSize(this.parser);
+    }
+
     receiver = undefined;
 }
 
@@ -109,17 +139,66 @@ export interface LevelFinalizePacketData extends BasePacketData {
 }
 
 export class LevelFinalizePacket7 extends Packet<LevelFinalizePacketData> {
-    name = "LevelFinalize";
-    id = PacketIds.levelFinalize;
-    size = 1 + 2 + 2 + 2;
-    parser = new ParserBuilder<LevelFinalizePacketData>()
-        .bigEndian()
-        .uint8("id")
-        .int16("worldSizeX")
-        .int16("worldSizeY")
-        .int16("worldSizeZ")
-        .build();
+    public readonly name = "LevelFinalize";
+    public readonly id = PacketIds.levelFinalize;
+    public readonly size: number;
+    public readonly parser: BinaryParser<LevelFinalizePacketData>;
+
+    constructor() {
+        super();
+        this.parser = new ParserBuilder<LevelFinalizePacketData>()
+            .bigEndian()
+            .uint8("id")
+            .int16("worldSizeX")
+            .int16("worldSizeY")
+            .int16("worldSizeZ")
+            .build();
+        this.size = assertParserSize(this.parser);
+    }
+
     receiver = undefined;
+}
+
+export interface SetBlockClientPacketData extends BasePacketData {
+    x: number;
+    y: number;
+    z: number;
+    mode: number;
+    blockType: number;
+}
+
+export class SetBlockClientPacket7 extends Packet<SetBlockClientPacketData> {
+    public readonly name = "SetBlockClient";
+    public readonly id = PacketIds.setBlockClient;
+    public readonly size: number;
+    public readonly parser: BinaryParser<SetBlockClientPacketData>;
+
+    constructor() {
+        super();
+        this.parser = new ParserBuilder<SetBlockClientPacketData>()
+            .bigEndian()
+            .uint8("id")
+            .int16("x")
+            .int16("y")
+            .int16("z")
+            .uint8("mode")
+            .uint8("blockType")
+            .build();
+        this.size = assertParserSize(this.parser);
+    }
+    sender = undefined;
+    async receiver(connection:Connection, data: Uint8Array) {
+        const parsed = this.parser.parse(data);
+        const player = connection.player;
+        if (!player) return;
+        const world = player.world;
+        if (!world) return;
+        if (!BlockIds[parsed.blockType]) {
+            console.warn(`Illegal block id: ${parsed.blockType}`);
+            return;
+        }
+        world.setBlock(new Vector3(parsed.x,parsed.y,parsed.z),parsed.mode === 1 ? parsed.blockType : BlockIds.air);
+    };
 }
 
 export const Packets = {
@@ -128,4 +207,6 @@ export const Packets = {
     [PacketIds.levelInitialize]: LevelInitializePacket7,
     [PacketIds.levelDataChunk]: LevelDataChunkPacket7,
     [PacketIds.levelFinalize]: LevelFinalizePacket7,
+    //[PacketIds.setBlockClient]: SetBlockClientPacket7,
 };
+
