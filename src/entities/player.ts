@@ -64,9 +64,9 @@ export class Player extends Entity {
         );
         await finalizePacket
             .sender(this.connection, {
-                x: world.size.x,
-                y: world.size.y,
-                z: world.size.z,
+                worldSizeX: world.size.x,
+                worldSizeY: world.size.y,
+                worldSizeZ: world.size.z,
             })
             .catch(this.connection.onError.bind(this.connection));
         super.loadWorld(world);
