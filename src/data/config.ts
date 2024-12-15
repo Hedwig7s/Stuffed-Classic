@@ -100,7 +100,7 @@ export interface ConfigOptions<T extends ConfigData = ConfigData> {
 export class Config<T extends ConfigData = ConfigData> {
     private _config: ConfigObject<T>;
     public get config() {
-        return createProxy(this._config, this.defaultConfig);
+        return createProxy(this._config, this.defaultConfig) as ConfigObject<T>;
     }
     public readonly defaultConfig: Readonly<ConfigObject<T>>;
     public readonly name: string;
