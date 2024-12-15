@@ -1,6 +1,6 @@
 import { readFile, writeFile, exists, mkdir } from "fs/promises";
 import { join as joinPath } from "path";
-import * as toml from "smol-toml";
+import json5 from "json5";
 import { CONFIG_PATH } from "data/constants";
 
 export type ConfigData = Record<string | symbol, any>;
@@ -19,7 +19,6 @@ function verifyConfigKey(
     config: any,
     defaultConfig: ConfigData
 ) {
-    console.log(typeof config[key], typeof defaultConfig[key]);
     return (
         key &&
         key in config &&
@@ -56,7 +55,8 @@ function verifyConfig(config: any, defaultConfig: ConfigData) {
 
 function createProxy<T extends ConfigData>(
     config: ConfigData,
-    defaultConfig: ConfigData
+    defaultConfig: ConfigData,
+    instance?: Config,
 ) {
     return new Proxy(config, {
         get(target, key) {
@@ -77,7 +77,11 @@ function createProxy<T extends ConfigData>(
                 (key in defaultConfig &&
                     verifyConfigValues(value, defaultConfig[key]))
             ) {
-                return Reflect.set(target, key, value, receiver);
+                const ret = Reflect.set(target, key, value, receiver);
+                if (instance && instance.autosave) {
+                    instance.save();
+                }
+                return ret;
             } else {
                 throw new Error(`Invalid value for key ${String(key)}`);
             }
@@ -90,6 +94,7 @@ export interface ConfigOptions<T extends ConfigData = ConfigData> {
     defaultConfig: T;
     name: string;
     version: number;
+    autosave?: boolean;
 }
 
 export class Config<T extends ConfigData = ConfigData> {
@@ -100,7 +105,8 @@ export class Config<T extends ConfigData = ConfigData> {
     public readonly defaultConfig: Readonly<ConfigObject<T>>;
     public readonly name: string;
     public readonly version: number;
-    constructor({ defaultConfig, name, version }: ConfigOptions<T>) {
+    public autosave: boolean;
+    constructor({ defaultConfig, name, version, autosave }: ConfigOptions<T>) {
         // TODO: updaters and validator
         this._config = structuredClone(defaultConfig) as ConfigObject<T>;
         if (defaultConfig["version"]) {
@@ -113,13 +119,20 @@ export class Config<T extends ConfigData = ConfigData> {
         this.defaultConfig = Object.freeze(def);
         this.version = version;
         this.name = name;
+        this.autosave = autosave ?? true;
         this._config.version = version;
+        if (this.autosave) {
+            this.save();
+        }
     }
     public getPath() {
-        return joinPath(CONFIG_PATH, `${this.name}.toml`);
+        return joinPath(CONFIG_PATH, `${this.name}.json5`);
     }
     async save() {
-        const encoded = toml.stringify(this._config);
+        const encoded = json5.stringify(this._config, {
+            space:4,
+            
+        });
         if (!(await exists(CONFIG_PATH))) {
             await mkdir(CONFIG_PATH);
         }
@@ -131,9 +144,9 @@ export class Config<T extends ConfigData = ConfigData> {
             return;
         }
         const data = (await readFile(path)).toString("utf-8");
-        let parsed: ReturnType<typeof toml.parse>;
+        let parsed: ConfigData;
         try {
-            parsed = toml.parse(data);
+            parsed = json5.parse(data) as ConfigData;
         } catch {
             console.warn("Failed to load config!");
             return;
@@ -161,7 +174,7 @@ export class Config<T extends ConfigData = ConfigData> {
             return out;
         };
         this._config = parseObj(parsed, this.defaultConfig) as ConfigObject<T>;
-        this.save();
+        if (this.autosave) this.save();
     }
 }
 export default Config;
