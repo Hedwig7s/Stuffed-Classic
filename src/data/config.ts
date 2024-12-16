@@ -2,6 +2,9 @@ import { readFile, writeFile, exists, mkdir } from "fs/promises";
 import { join as joinPath } from "path";
 import json5 from "json5";
 import { CONFIG_PATH } from "data/constants";
+import { existsSync, readFileSync } from "fs";
+import type pino from "pino";
+import { getSimpleLogger } from "utility/logger";
 
 export type ConfigData = Record<string | symbol, any>;
 export type ConfigObject<T extends ConfigData> = T & { version: number };
@@ -27,9 +30,9 @@ function verifyConfigKey(
     );
 }
 
-function verifyConfig(config: any, defaultConfig: ConfigData) {
+function verifyConfig(config: any, defaultConfig: ConfigData, instance:Config) {
     if (!isObject(defaultConfig) || !isObject(config)) {
-        console.warn("Invalid config passed into verifyConfig");
+        instance.logger.warn("Invalid config passed into verifyConfig");
         return false;
     }
 
@@ -45,7 +48,7 @@ function verifyConfig(config: any, defaultConfig: ConfigData) {
         const defaultValue = defaultConfig[key];
 
         if (value && isObject(value)) {
-            if (!verifyConfig(value, defaultValue)) {
+            if (!verifyConfig(value, defaultValue, instance)) {
                 return false;
             }
         }
@@ -56,13 +59,13 @@ function verifyConfig(config: any, defaultConfig: ConfigData) {
 function createProxy<T extends ConfigData>(
     config: ConfigData,
     defaultConfig: ConfigData,
-    instance?: Config,
+    instance: Config
 ) {
     return new Proxy(config, {
         get(target, key) {
             if (typeof target[key] === "object") {
                 const value = target[key];
-                return createProxy<typeof value>(value, defaultConfig[key]);
+                return createProxy<typeof value>(value, defaultConfig[key], instance);
             }
             if (!(key in target)) {
                 target[key] = structuredClone(defaultConfig[key]);
@@ -73,7 +76,7 @@ function createProxy<T extends ConfigData>(
             if (
                 (isObject(value) &&
                     isObject(defaultConfig[key]) &&
-                    verifyConfig(value, defaultConfig[key])) ||
+                    verifyConfig(value, defaultConfig[key], instance)) ||
                 (key in defaultConfig &&
                     verifyConfigValues(value, defaultConfig[key]))
             ) {
@@ -100,17 +103,19 @@ export interface ConfigOptions<T extends ConfigData = ConfigData> {
 export class Config<T extends ConfigData = ConfigData> {
     private _config: ConfigObject<T>;
     public get config() {
-        return createProxy(this._config, this.defaultConfig) as ConfigObject<T>;
+        return createProxy(this._config, this.defaultConfig, this) as ConfigObject<T>;
     }
     public readonly defaultConfig: Readonly<ConfigObject<T>>;
     public readonly name: string;
     public readonly version: number;
+    public readonly logger: pino.Logger;
     public autosave: boolean;
     constructor({ defaultConfig, name, version, autosave }: ConfigOptions<T>) {
         // TODO: updaters and validator
+        this.logger = getSimpleLogger("Config "+name);
         this._config = structuredClone(defaultConfig) as ConfigObject<T>;
         if (defaultConfig["version"]) {
-            console.warn(
+            this.logger.warn(
                 "Top level version parameter reserved for config version! Will be overwritten"
             );
         }
@@ -121,29 +126,20 @@ export class Config<T extends ConfigData = ConfigData> {
         this.name = name;
         this.autosave = autosave ?? true;
         this._config.version = version;
-        if (this.autosave) {
-            this.save();
-        }
     }
     public getPath() {
         return joinPath(CONFIG_PATH, `${this.name}.json5`);
     }
     async save() {
         const encoded = json5.stringify(this._config, {
-            space:4,
-            
+            space: 4,
         });
         if (!(await exists(CONFIG_PATH))) {
             await mkdir(CONFIG_PATH);
         }
         writeFile(this.getPath(), encoded, { encoding: "utf-8" });
     }
-    async load() {
-        const path = this.getPath();
-        if (!(await exists(path))) {
-            return;
-        }
-        const data = (await readFile(path)).toString("utf-8");
+    protected _load(data: string) {
         let parsed: ConfigData;
         try {
             parsed = json5.parse(data) as ConfigData;
@@ -175,6 +171,22 @@ export class Config<T extends ConfigData = ConfigData> {
         };
         this._config = parseObj(parsed, this.defaultConfig) as ConfigObject<T>;
         if (this.autosave) this.save();
+    }
+    async load() {
+        const path = this.getPath();
+        if (!(await exists(path))) {
+            return;
+        }
+        const data = (await readFile(path)).toString("utf-8");
+        this._load(data);
+    }
+    loadSync() {
+        const path = this.getPath();
+        if (!existsSync) {
+            return;
+        }
+        const data = readFileSync(path).toString("utf-8");
+        this._load(data);
     }
 }
 export default Config;

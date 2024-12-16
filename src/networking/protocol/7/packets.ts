@@ -1,7 +1,14 @@
 import type { BasePacketData } from "networking/protocol/basepacket";
-import { Packet, PacketIds, assertParserSize } from "networking/protocol/basepacket";
+import {
+    Packet,
+    PacketIds,
+    assertParserSize,
+} from "networking/protocol/basepacket";
 import { assertPacket, STRING_OPTIONS } from "networking/protocol/basepacket";
-import { ParserBuilder, type BinaryParserType as BinaryParser } from "utility/dataparser";
+import {
+    ParserBuilder,
+    type BinaryParserType as BinaryParser,
+} from "utility/dataparser";
 import type { Connection } from "networking/server";
 import Player from "entities/player";
 import Vector3 from "datatypes/vector3";
@@ -187,18 +194,50 @@ export class SetBlockClientPacket7 extends Packet<SetBlockClientPacketData> {
         this.size = assertParserSize(this.parser);
     }
     sender = undefined;
-    async receiver(connection:Connection, data: Uint8Array) {
+    async receiver(connection: Connection, data: Uint8Array) {
         const parsed = this.parser.parse(data);
         const player = connection.player;
         if (!player) return;
         const world = player.world;
         if (!world) return;
         if (!BlockIds[parsed.blockType]) {
-            console.warn(`Illegal block id: ${parsed.blockType}`);
+            connection.logger.warn(`Illegal block id: ${parsed.blockType}`);
             return;
         }
-        world.setBlock(new Vector3(parsed.x,parsed.y,parsed.z),parsed.mode === 1 ? parsed.blockType : BlockIds.air);
-    };
+        world.setBlock(
+            new Vector3(parsed.x, parsed.y, parsed.z),
+            parsed.mode === 1 ? parsed.blockType : BlockIds.air
+        );
+    }
+}
+
+export interface SetBlockServerPacketData extends BasePacketData {
+    x: number;
+    y: number;
+    z: number;
+    blockType: number;
+}
+
+export class SetBlockServerPacket7 extends Packet<SetBlockServerPacketData> {
+    public readonly name = "SetBlockClient";
+    public readonly id = PacketIds.setBlockClient;
+    public readonly size: number;
+    public readonly parser: BinaryParser<SetBlockServerPacketData>;
+
+    constructor() {
+        super();
+        this.parser = new ParserBuilder<SetBlockServerPacketData>()
+            .bigEndian()
+            .uint8("id")
+            .int16("x")
+            .int16("y")
+            .int16("z")
+            .uint8("blockType")
+            .build();
+        this.size = assertParserSize(this.parser);
+    }
+
+    receiver = undefined;
 }
 
 export const Packets = {
@@ -207,6 +246,6 @@ export const Packets = {
     [PacketIds.levelInitialize]: LevelInitializePacket7,
     [PacketIds.levelDataChunk]: LevelDataChunkPacket7,
     [PacketIds.levelFinalize]: LevelFinalizePacket7,
-    //[PacketIds.setBlockClient]: SetBlockClientPacket7,
+    [PacketIds.setBlockClient]: SetBlockClientPacket7,
+    [PacketIds.setBlockServer]: SetBlockServerPacket7,
 };
-

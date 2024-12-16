@@ -1,7 +1,9 @@
 import * as iconv from "iconv-lite";
 
 export type ParserData<T> = {
-    [K in keyof T as T[K] extends string | number | bigint | Uint8Array ? K : never]: T[K];
+    [K in keyof T as T[K] extends string | number | bigint | Uint8Array
+        ? K
+        : never]: T[K];
 };
 interface Format<T extends ParserData<T>> {
     name: string;
@@ -54,7 +56,8 @@ function parseInt(
     const end = endianness === "little" ? -1 : format.size;
     const step = endianness === "little" ? -1 : 1;
     for (let i = start; i !== end; i += step) {
-        if (i==5) { // If number is higher than 32 bits
+        if (i == 5) {
+            // If number is higher than 32 bits
             value = BigInt(value);
         }
         value = value * 256n + BigInt(data[i]);
@@ -79,14 +82,14 @@ function encodeInt(
         if (num < -(1 << (format.size * 8))) {
             throw new Error(`Integer ${String(format.key)} out of range`);
         }
-        if (typeof num === 'bigint') {
+        if (typeof num === "bigint") {
             num = (num >> 0n) + (1n << BigInt(format.size * 8));
         } else {
             num = (num >>> 0) + (1 << (format.size * 8));
         }
     }
     for (let i = 0; i < format.size; i++) {
-        if (typeof value === 'bigint') {
+        if (typeof value === "bigint") {
             out[i] = Number(value & 0xffn);
             value = value >> 8n;
         } else {
@@ -104,12 +107,12 @@ class BinaryParser<T extends ParserData<T>> {
     public readonly formatList: Format<T>[];
     protected endianness: "little" | "big";
 
-    public readonly size: number|undefined; // Undefined = variable size
+    public readonly size: number | undefined; // Undefined = variable size
 
     constructor(formatList: Format<T>[]) {
         this.formatList = formatList;
         this.endianness = nativeEndianness;
-        let size: number|undefined = 0;
+        let size: number | undefined = 0;
         for (const format of formatList) {
             if (format.size < 0) {
                 size = undefined;
@@ -147,12 +150,15 @@ class BinaryParser<T extends ParserData<T>> {
                         offset,
                         (offset += intFormat.size)
                     );
-                    let result: bigint|number = parseInt(
+                    let result: bigint | number = parseInt(
                         intFormat,
                         slice,
                         this.endianness
                     );
-                    if (result <= Number.MAX_SAFE_INTEGER && result >= Number.MIN_SAFE_INTEGER) {
+                    if (
+                        result <= Number.MAX_SAFE_INTEGER &&
+                        result >= Number.MIN_SAFE_INTEGER
+                    ) {
                         result = Number(result);
                     }
                     parsed[intFormat.key] = result as T[keyof T];
@@ -203,7 +209,9 @@ class BinaryParser<T extends ParserData<T>> {
                                 offset,
                                 (offset += stringFormat.length)
                             );
-                            parsed[stringFormat.key] = decode(slice) as T[keyof T];
+                            parsed[stringFormat.key] = decode(
+                                slice
+                            ) as T[keyof T];
                             break;
                         }
                         default: {
@@ -280,7 +288,9 @@ class BinaryParser<T extends ParserData<T>> {
         }
         for (const format of this.formatList) {
             if (parsed[format.key] == null && !format.name.endsWith("endian")) {
-                throw new Error(`Incomplete data: Key ${String(format.key)} not found`);
+                throw new Error(
+                    `Incomplete data: Key ${String(format.key)} not found`
+                );
             }
         }
 
@@ -333,11 +343,18 @@ class BinaryParser<T extends ParserData<T>> {
                     break;
                 }
                 case "integer": {
-                    if (typeof value !== "number" && typeof value !== "bigint") {
-                        throw new Error(`Key ${String(format.key)} is not a number`);
+                    if (
+                        typeof value !== "number" &&
+                        typeof value !== "bigint"
+                    ) {
+                        throw new Error(
+                            `Key ${String(format.key)} is not a number`
+                        );
                     }
                     if (typeof value !== "bigint" && value % 1 !== 0) {
-                        throw new Error(`Key ${String(format.key)} is not an integer`);
+                        throw new Error(
+                            `Key ${String(format.key)} is not an integer`
+                        );
                     }
                     const intFormat = format as IntFormat<T>;
                     checkSize(intFormat.size);
@@ -350,7 +367,9 @@ class BinaryParser<T extends ParserData<T>> {
                 }
                 case "string": {
                     if (typeof value !== "string") {
-                        throw new Error(`Key ${String(format.key)} is not a string`);
+                        throw new Error(
+                            `Key ${String(format.key)} is not a string`
+                        );
                     }
                     const str = value as string;
                     const stringFormat = format as StringFormat<T>;
@@ -367,7 +386,9 @@ class BinaryParser<T extends ParserData<T>> {
                         stringFormat.type === "fixed" &&
                         str.length > padLength
                     ) {
-                        throw new Error(`String ${String(format.key)} is too long`);
+                        throw new Error(
+                            `String ${String(format.key)} is too long`
+                        );
                     }
                     const encoding = stringFormat.encoding || "utf-8";
                     if (!iconv.encodingExists(encoding)) {
@@ -388,7 +409,9 @@ class BinaryParser<T extends ParserData<T>> {
                 }
                 case "float": {
                     if (typeof value !== "number") {
-                        throw new Error(`Key ${String(format.key)} is not a number`);
+                        throw new Error(
+                            `Key ${String(format.key)} is not a number`
+                        );
                     }
                     checkSize(4);
                     new DataView(out.buffer).setFloat32(
@@ -401,7 +424,9 @@ class BinaryParser<T extends ParserData<T>> {
                 }
                 case "double": {
                     if (typeof value !== "number") {
-                        throw new Error(`Key ${String(format.key)} is not a number`);
+                        throw new Error(
+                            `Key ${String(format.key)} is not a number`
+                        );
                     }
                     checkSize(8);
                     new DataView(out.buffer).setFloat64(
@@ -414,7 +439,9 @@ class BinaryParser<T extends ParserData<T>> {
                 }
                 case "fixed": {
                     if (typeof value !== "number") {
-                        throw new Error(`Key ${String(format.key)} is not a number`);
+                        throw new Error(
+                            `Key ${String(format.key)} is not a number`
+                        );
                     }
                     const fixedFormat = format as FixedFormat<T>;
                     const fixedValue = Math.floor(

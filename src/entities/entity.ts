@@ -2,6 +2,8 @@ import EntityPosition from "datatypes/entityposition";
 import type { ContextManager } from "contextmanager";
 import type { World } from "data/worlds/world";
 import type { EntityRegistry } from "entities/entityregistry";
+import type pino from "pino";
+import { getSimpleLogger } from "utility/logger";
 
 export interface EntityOptions {
     position?: EntityPosition;
@@ -24,6 +26,7 @@ export class Entity {
     public readonly registries: EntityRegistry[] = [];
     public world?: World;
     public worldEntityId = -1; // Entity id within a world
+    public readonly logger: pino.Logger;
     protected static finalizationRegistry = new FinalizationRegistry<Entity>(
         this.cleanup
     );
@@ -39,6 +42,7 @@ export class Entity {
         register,
         unregister,
     }: EntityOptions) {
+        this.logger = getSimpleLogger("Entity "+name);
         this.context = context;
         this.unregister = unregister ?? true;
         if (register ?? true) {

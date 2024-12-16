@@ -4,6 +4,8 @@ import type { BaseProtocol } from "networking/protocol/baseprotocol";
 import type { PacketIds } from "networking/protocol/basepacket";
 import type { ContextManager } from "contextmanager";
 import type { Player } from "entities/player";
+import type pino from "pino";
+import { getSimpleLogger } from "utility/logger";
 
 async function writeFromSink(sink: ArrayBufferSink, socket: Socket<any>) {
     const data = sink.flush() as Uint8Array;
@@ -20,25 +22,28 @@ export interface SocketData {
 }
 
 export class Connection {
-    closed = false;
-    protocol?: BaseProtocol;
-    player?: Player;
-    dataQueue: Uint8Array[] = [];
-    processingIncoming = false;
+    public closed = false;
+    public protocol?: BaseProtocol;
+    public player?: Player;
+    public readonly dataQueue: Uint8Array[] = [];
+    public processingIncoming = false;
+    public readonly logger: pino.Logger;
+
     constructor(
         public readonly socket: Socket<SocketData>,
         public readonly context: ContextManager,
         public readonly id: number
     ) {
-        setTimeout(()=> {
+        this.logger = getSimpleLogger(`Connection ${id}`);
+        setTimeout(() => {
             if (!this.protocol && !this.closed) {
-                console.warn("Handshake timeout");
+                this.logger.warn("Handshake timeout");
                 this.close();
             }
         }, 10000);
     }
     onError(error: Error) {
-        console.error(error);
+        this.logger.error(error);
         this.close();
     }
     async write(data: string | ArrayBuffer | Bun.BufferSource) {
@@ -125,21 +130,24 @@ export class Connection {
                 }
             }, 1000);
         } catch (error) {
-            console.error(error);
+            this.logger.error(error);
         }
         this.closed = true;
     }
 }
 export class Server {
     server?: TCPSocketListener;
-    constructor(public readonly context: ContextManager) {}
     public host?: string;
     public port?: number;
     public connectionCount = 0;
     public stopped = false;
+    public readonly logger: pino.Logger;
     protected _connections = new Map<number, WeakRef<Connection>>();
     public get connections() {
         return Object.freeze(new Map(this._connections));
+    }
+    constructor(public readonly context: ContextManager) {
+        this.logger = getSimpleLogger("Server");
     }
     cleanConnections() {
         for (const [id, connection] of this._connections) {
@@ -168,20 +176,22 @@ export class Server {
                 },
                 close: (socket) => {
                     try {
-                        console.log("Socket closed");
+                        this.logger.info(
+                            `Socket ${socket.data.connection?.id} closed`
+                        );
                         if (socket.data.connection) {
                             socket.data.connection.close();
                         }
                     } catch (error) {
-                        console.error(error);
+                        this.logger.error(error);
                     }
                 },
                 error: (socket, error) => {
-                    console.log(`Socket error: ${error}`);
+                    this.logger.warn(`Socket error: ${error}`);
                 },
                 open: (socket) => {
                     try {
-                        console.log("Socket connected");
+                        this.logger.info("Socket connected");
                         const id = this.connectionCount;
                         this.connectionCount++;
                         socket.data = {
@@ -206,16 +216,15 @@ export class Server {
                             new WeakRef(socket.data.connection)
                         );
                     } catch (error) {
-                        console.error(error);
+                        this.logger.error(error);
                         socket.end();
                     }
                 },
                 drain: (socket) => {
                     try {
-                        console.log("Socket drained");
                         writeFromSink(socket.data.sink, socket);
                     } catch (error) {
-                        console.error(error);
+                        this.logger.error(error);
                         socket.end();
                     }
                 },
@@ -228,13 +237,13 @@ export class Server {
             }
             this.cleanConnections();
         }, 30000);
-        console.log(`Server started at ${this.host}:${this.port}`);
+        this.logger.info(`Server started at ${this.host}:${this.port}`);
     }
 
     close() {
         this.server?.stop();
         this.stopped = true;
-        console.log("Server stopped");
+        this.logger.info("Server stopped");
     }
 }
 export default Server;

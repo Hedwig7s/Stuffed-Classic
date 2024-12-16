@@ -1,5 +1,7 @@
 import type { World } from "data/worlds/world";
 import type { ContextManager } from "contextmanager";
+import { getSimpleLogger } from "utility/logger";
+import pino from "pino";
 
 export interface WorldManagerOptions {
     context: ContextManager;
@@ -11,6 +13,7 @@ export class WorldManager {
     protected _worlds = new Map<string, World>();
     public readonly context: ContextManager;
     public autosave: boolean;
+    public readonly logger: pino.Logger;
     addWorld(world: World) {
         this._worlds.set(world.name, world);
         world.manager = this;
@@ -24,6 +27,7 @@ export class WorldManager {
     constructor({ context, autosave, autosaveTime }: WorldManagerOptions) {
         this.context = context;
         this.autosave = autosave ?? false;
+        this.logger = getSimpleLogger("WorldManager");
 
         setInterval(() => {
             if (this.autosave) {
@@ -31,7 +35,7 @@ export class WorldManager {
                     try {
                         world.save();
                     } catch (error) {
-                        console.error(error);
+                        this.logger.error(error);
                     }
                 }
             }

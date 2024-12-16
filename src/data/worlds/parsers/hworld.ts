@@ -55,7 +55,7 @@ interface Block {
     readonly count: number;
 }
 
-const VERSION_PARSER = new ParserBuilder<{version: number}>()
+const VERSION_PARSER = new ParserBuilder<{ version: number }>()
     .littleEndian()
     .uint32("version")
     .build();
@@ -76,7 +76,7 @@ const V2HEADER_PARSER = new ParserBuilder<V2Header>()
 const V4HEADER_PARSER = new ParserBuilder<V4Header>()
     .littleEndian()
     .uint32("version")
-    .fixedString("identifier",6, "ascii")
+    .fixedString("identifier", 6, "ascii")
     .uint16("sizeX")
     .uint16("sizeY")
     .uint16("sizeZ")
@@ -111,7 +111,9 @@ function zlibCallbackToPromise<
     };
 }
 
-function getHeaderParser(version: number): typeof V4HEADER_PARSER|typeof V2HEADER_PARSER {
+function getHeaderParser(
+    version: number
+): typeof V4HEADER_PARSER | typeof V2HEADER_PARSER {
     if (version === 4) {
         return V4HEADER_PARSER;
     } else if (version >= 2 && version <= 3) {
@@ -123,13 +125,17 @@ function getHeaderParser(version: number): typeof V4HEADER_PARSER|typeof V2HEADE
 
 export default class HWorldParser extends BaseWorldParser {
     async decode(data: Uint8Array) {
-        const VERSION = VERSION_PARSER.parse(data.subarray(0,VERSION_PARSER.size)).version;
+        const VERSION = VERSION_PARSER.parse(
+            data.subarray(0, VERSION_PARSER.size)
+        ).version;
         const HEADER_PARSER = getHeaderParser(VERSION);
         if (HEADER_PARSER.size == undefined) {
             throw new Error("Invalid parser sizes!");
         }
-        const HEADER = HEADER_PARSER.parse(data.subarray(0,HEADER_PARSER.size));
-        
+        const HEADER = HEADER_PARSER.parse(
+            data.subarray(0, HEADER_PARSER.size)
+        );
+
         const SIZE = new Vector3(HEADER.sizeX, HEADER.sizeY, HEADER.sizeZ);
         const SPAWN = new EntityPosition(
             HEADER.spawnX,
@@ -139,7 +145,12 @@ export default class HWorldParser extends BaseWorldParser {
             HEADER.spawnPitch
         );
         const BLOCKS = new Uint8Array(SIZE.product()).fill(0);
-        let compressedBlocks = data.subarray(HEADER_PARSER.size,"blockDataSize" in HEADER ? HEADER_PARSER.size+(HEADER.blockDataSize as number) : undefined);
+        let compressedBlocks = data.subarray(
+            HEADER_PARSER.size,
+            "blockDataSize" in HEADER
+                ? HEADER_PARSER.size + (HEADER.blockDataSize as number)
+                : undefined
+        );
         if (VERSION >= 3) {
             const TEMP_BLOCKS = await zlibCallbackToPromise(zlib.inflate)(
                 compressedBlocks
@@ -174,8 +185,10 @@ export default class HWorldParser extends BaseWorldParser {
         let count = 0;
         let currentBlock = -1;
         const writeBlock = function (id: number, count: number) {
-            if (blockOffset + (BLOCK_PARSER.size??5) >= blocks.byteLength) {
-                const newBlocks = new Uint8Array(blocks.byteLength+5*1024*1024).fill(0);
+            if (blockOffset + (BLOCK_PARSER.size ?? 5) >= blocks.byteLength) {
+                const newBlocks = new Uint8Array(
+                    blocks.byteLength + 5 * 1024 * 1024
+                ).fill(0);
                 blocks = newBlocks;
             }
             blocks.set(
@@ -202,7 +215,9 @@ export default class HWorldParser extends BaseWorldParser {
         if (count > 0) {
             writeBlock(currentBlock, count);
         }
-        const TEMP_BLOCKS = await zlibCallbackToPromise(zlib.deflate)(blocks.subarray(0,blockOffset));
+        const TEMP_BLOCKS = await zlibCallbackToPromise(zlib.deflate)(
+            blocks.subarray(0, blockOffset)
+        );
         const COMPRESSED_BLOCKS = new Uint8Array(
             TEMP_BLOCKS.buffer,
             TEMP_BLOCKS.byteOffset,

@@ -54,7 +54,7 @@ export function assertPacket<T extends BasePacketData>(
     return packet as unknown as Packet<T>;
 }
 
-export function assertParserSize(parser?:BinaryParser<any>): number {
+export function assertParserSize(parser?: BinaryParser<any>): number {
     if (!parser) {
         throw new Error("No parser");
     }

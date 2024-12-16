@@ -10,7 +10,4 @@ export default {
         worldDir: "./worlds",
         defaultWorld: "world",
     },
-    misc: {
-        debug: false
-    }
 };

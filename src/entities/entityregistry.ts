@@ -1,5 +1,7 @@
 import type { ContextManager } from "contextmanager";
 import type { Entity } from "entities/entity";
+import type pino from "pino";
+import { getSimpleLogger } from "utility/logger";
 import { v4 as uuidv4 } from "uuid";
 
 export interface EntityRegistryOptions {
@@ -13,8 +15,10 @@ export class EntityRegistry {
     public readonly maxEntities: number;
     protected context: ContextManager;
     protected appendToList: boolean;
+    public readonly logger: pino.Logger;
 
     constructor({ maxEntities, appendToList, context }: EntityRegistryOptions) {
+        this.logger = getSimpleLogger("EntityRegistry");
         this.context = context;
         this.maxEntities = maxEntities ?? 10 ** 7;
         this.appendToList = appendToList ?? true;

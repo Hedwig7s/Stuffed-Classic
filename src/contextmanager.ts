@@ -10,6 +10,8 @@ import Vector3 from "datatypes/vector3";
 import * as pathlib from "path";
 import HWorldParser from "data/worlds/parsers/hworld";
 import { DEFAULT_CONFIGS } from "data/constants";
+import type pino from "pino";
+import { getSimpleLogger } from "utility/logger";
 
 export interface ConfigRecord {
     main: Config<typeof DEFAULT_CONFIGS.main>;
@@ -27,9 +29,12 @@ export class ContextManager {
     public readonly entityRegistry: EntityRegistry;
     public readonly playerRegistry: EntityRegistry;
     public readonly protocols: Record<number, BaseProtocol>;
+    public readonly logger: pino.Logger;
     // TODO: World generators
     public defaultWorld?: World;
+
     constructor({ serverConfigName }: ContextOptions = {}) {
+        this.logger = getSimpleLogger("Context");
         this.config = {
             main: new Config<typeof DEFAULT_CONFIGS.main>({
                 defaultConfig: DEFAULT_CONFIGS.main,
@@ -38,7 +43,7 @@ export class ContextManager {
             }),
         };
         for (const config of Object.values(this.config)) {
-            config.load();
+            config.loadSync();
         }
         this.worldManager = new WorldManager({ context: this, autosave: true });
         World.fromFile({
@@ -54,7 +59,7 @@ export class ContextManager {
                     this.defaultWorld = world;
                 },
                 (error) => {
-                    console.warn(error);
+                    this.logger.warn(error);
                     this.defaultWorld = new World({
                         name: this.config.main.config.worlds.defaultWorld,
                         size: new Vector3(100, 60, 100),

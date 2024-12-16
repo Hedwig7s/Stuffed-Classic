@@ -11,6 +11,9 @@ import type { ContextManager } from "contextmanager";
 import type BaseWorldParser from "./parsers/base";
 import { ParserBuilder } from "utility/dataparser";
 import { concatUint8Arrays } from "uint8array-extras";
+import Player from "entities/player";
+import type pino from "pino";
+import { getSimpleLogger } from "utility/logger";
 
 export interface WorldOptions {
     name: string;
@@ -48,8 +51,10 @@ export class World {
     entities = new Map<number, Entity>();
     manager?: WorldManager;
     public readonly context: ContextManager;
+    public readonly logger: pino.Logger;
 
     constructor({ name, size, spawn, blocks, context }: WorldOptions) {
+        this.logger = getSimpleLogger("World "+name);
         this.name = name;
         this.size = size;
         this._blocks = new Uint8Array(this.size.product()).fill(0);
@@ -148,7 +153,7 @@ export class World {
                 clearTimeout(timeout);
                 resolve();
             });
-            const headerParser = new ParserBuilder()
+            const headerParser = new ParserBuilder<{levelSize: number}>()
                 .bigEndian()
                 .int32("levelSize")
                 .build();
@@ -180,6 +185,7 @@ export class World {
         const index = getBlockIndex(position, this.size);
         this._blocks[index] = blockId;
         this.lastUpdate = Date.now();
+
     }
     getBlock(position: Vector3) {
         const index = getBlockIndex(position, this.size);

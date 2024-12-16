@@ -58,7 +58,7 @@ export class Player extends Entity {
                     chunkLength: size,
                     chunkData: data,
                     percentComplete: percent,
-                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                    // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 }).catch(this.connection?.onError.bind(this.connection!));
             }
         );
