@@ -7,7 +7,7 @@ import type pino from "pino";
 import { getSimpleLogger } from "utility/logger";
 
 export type ConfigData = Record<string | symbol, any>;
-export type ConfigObject<T extends ConfigData> = T & { version: number };
+export type ConfigObject<T extends ConfigData> = T & { version: number, lastUpdated: number };
 
 function isObject(value: any) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -84,6 +84,7 @@ function createProxy<T extends ConfigData>(
                 if (instance && instance.autosave) {
                     instance.save();
                 }
+                Reflect.set(target, "lastUpdate",Math.floor(Date.now()/1000));
                 return ret;
             } else {
                 throw new Error(`Invalid value for key ${String(key)}`);
@@ -99,7 +100,7 @@ export interface ConfigOptions<T extends ConfigData = ConfigData> {
     version: number;
     autosave?: boolean;
 }
-
+const reservedKeys = ["version","lastUpdated"]
 export class Config<T extends ConfigData = ConfigData> {
     private _config: ConfigObject<T>;
     public get config() {
@@ -114,13 +115,16 @@ export class Config<T extends ConfigData = ConfigData> {
         // TODO: updaters and validator
         this.logger = getSimpleLogger("Config "+name);
         this._config = structuredClone(defaultConfig) as ConfigObject<T>;
-        if (defaultConfig["version"]) {
-            this.logger.warn(
-                "Top level version parameter reserved for config version! Will be overwritten"
-            );
+        for (const key of reservedKeys) {
+            if (key in defaultConfig) {
+                this.logger.warn(
+                    `Top level ${key} key is reserved! Will be overwritten`
+                );
+            }
         }
         const def = structuredClone(defaultConfig) as ConfigObject<T>;
         def.version = version;
+        def.lastUpdated = Math.floor(Date.now()/1000);
         this.defaultConfig = Object.freeze(def);
         this.version = version;
         this.name = name;
