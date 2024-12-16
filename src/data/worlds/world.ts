@@ -14,6 +14,7 @@ import { concatUint8Arrays } from "uint8array-extras";
 import Player from "entities/player";
 import type pino from "pino";
 import { getSimpleLogger } from "utility/logger";
+import { PacketIds } from "networking/protocol/basepacket";
 
 export interface WorldOptions {
     name: string;
@@ -185,6 +186,22 @@ export class World {
         const index = getBlockIndex(position, this.size);
         this._blocks[index] = blockId;
         this.lastUpdate = Date.now();
+        for (const entity of this.entities.values()) { // Perhaps replace with events at a later point
+            if (entity instanceof Player) {
+                const protocol = entity.connection?.protocol;
+                if (!protocol || !entity.connection) {
+                    this.logger.error("No connection/protocol on registered player!");
+                    continue;
+                }
+                const setBlockPacket = protocol.getPacket(PacketIds.setBlockServer);
+                if (!setBlockPacket || !setBlockPacket.sender) {
+                    this.logger.error("No setBlockServer packet found!");
+                    continue;
+                }
+
+                setBlockPacket.sender(entity.connection,{x:position.x,y:position.y,z:position.z,blockType:blockId});
+            }
+        }
 
     }
     getBlock(position: Vector3) {

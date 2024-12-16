@@ -4,6 +4,7 @@ import type {
     StringOptions,
 } from "utility/dataparser";
 import type BaseProtocol from "networking/protocol/baseprotocol";
+import type { ContextManager } from "contextmanager";
 
 export const STRING_OPTIONS: StringOptions = {
     encoding: "ascii",
@@ -15,11 +16,19 @@ export interface BasePacketData {
     id: number;
 }
 
+export interface BasePacketOptions {
+    context: ContextManager;
+}
+
 export abstract class Packet<T extends object> {
     public abstract readonly name: string;
     public abstract readonly id: number;
     public abstract readonly parser: BinaryParser<T>;
     public abstract readonly size: number;
+    public readonly context: ContextManager;
+    constructor({context}: BasePacketOptions) {
+        this.context = context;
+    }
     async sender?(connection: Connection, data: Omit<T, "id">) {
         const newData = {
             id: this.id,

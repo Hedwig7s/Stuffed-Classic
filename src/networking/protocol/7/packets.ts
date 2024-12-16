@@ -1,4 +1,4 @@
-import type { BasePacketData } from "networking/protocol/basepacket";
+import type { BasePacketData, BasePacketOptions } from "networking/protocol/basepacket";
 import {
     Packet,
     PacketIds,
@@ -13,6 +13,7 @@ import type { Connection } from "networking/server";
 import Player from "entities/player";
 import Vector3 from "datatypes/vector3";
 import { BlockIds } from "data/blocks";
+import type { ContextManager } from "contextmanager";
 
 const PROTOCOL_VERSION = 7;
 
@@ -29,8 +30,8 @@ export class IdentificationPacket7 extends Packet<IdentificationPacketData> {
     public readonly size: number;
     public readonly parser: BinaryParser<IdentificationPacketData>;
 
-    constructor() {
-        super();
+    constructor(options: BasePacketOptions) {
+        super(options);
         this.parser = new ParserBuilder<IdentificationPacketData>()
             .bigEndian()
             .uint8("id")
@@ -80,8 +81,8 @@ export class PingPacket7 extends Packet<BasePacketData> {
     public readonly size: number;
     public readonly parser: BinaryParser<BasePacketData>;
 
-    constructor() {
-        super();
+    constructor(options: BasePacketOptions) {
+        super(options);
         this.parser = new ParserBuilder<BasePacketData>()
             .bigEndian()
             .uint8("id")
@@ -100,8 +101,8 @@ export class LevelInitializePacket7 extends Packet<BasePacketData> {
     public readonly size: number;
     public readonly parser: BinaryParser<BasePacketData>;
 
-    constructor() {
-        super();
+    constructor(options: BasePacketOptions) {
+        super(options);
         this.parser = new ParserBuilder<BasePacketData>()
             .bigEndian()
             .uint8("id")
@@ -124,8 +125,8 @@ export class LevelDataChunkPacket7 extends Packet<LevelDataChunkPacketData> {
     public readonly size: number;
     public readonly parser: BinaryParser<LevelDataChunkPacketData>;
 
-    constructor() {
-        super();
+    constructor(options: BasePacketOptions) {
+        super(options);
         this.parser = new ParserBuilder<LevelDataChunkPacketData>()
             .bigEndian()
             .uint8("id")
@@ -151,8 +152,8 @@ export class LevelFinalizePacket7 extends Packet<LevelFinalizePacketData> {
     public readonly size: number;
     public readonly parser: BinaryParser<LevelFinalizePacketData>;
 
-    constructor() {
-        super();
+    constructor(options: BasePacketOptions) {
+        super(options);
         this.parser = new ParserBuilder<LevelFinalizePacketData>()
             .bigEndian()
             .uint8("id")
@@ -180,8 +181,8 @@ export class SetBlockClientPacket7 extends Packet<SetBlockClientPacketData> {
     public readonly size: number;
     public readonly parser: BinaryParser<SetBlockClientPacketData>;
 
-    constructor() {
-        super();
+    constructor(options: BasePacketOptions) {
+        super(options);
         this.parser = new ParserBuilder<SetBlockClientPacketData>()
             .bigEndian()
             .uint8("id")
@@ -220,12 +221,12 @@ export interface SetBlockServerPacketData extends BasePacketData {
 
 export class SetBlockServerPacket7 extends Packet<SetBlockServerPacketData> {
     public readonly name = "SetBlockClient";
-    public readonly id = PacketIds.setBlockClient;
+    public readonly id = PacketIds.setBlockServer;
     public readonly size: number;
     public readonly parser: BinaryParser<SetBlockServerPacketData>;
 
-    constructor() {
-        super();
+    constructor(options: BasePacketOptions) {
+        super(options);
         this.parser = new ParserBuilder<SetBlockServerPacketData>()
             .bigEndian()
             .uint8("id")

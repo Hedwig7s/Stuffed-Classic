@@ -1,9 +1,15 @@
 import type { ContextManager } from "contextmanager";
-import type { PacketIds, Packet } from "networking/protocol/basepacket";
+import type { PacketIds, Packet, BasePacketOptions } from "networking/protocol/basepacket";
+
+export function parsePackets(packets: Record<PacketIds, new (options:BasePacketOptions) => Packet<any>>, context: ContextManager) {
+    return Object.fromEntries(
+        Object.entries(packets).map(([id, packet]) => [id, new packet({context})])
+    ) as Record<PacketIds, Packet<any>>;
+}
 
 export abstract class BaseProtocol {
     public abstract readonly version: number;
-    public abstract readonly packets: Record<PacketIds, Packet<any>>;
+    public abstract packets: Record<PacketIds, Packet<any>>;
     constructor(public readonly context: ContextManager) {}
     protected nameCache = new Map<string, Packet<any>>();
     public getPacket(name: string | PacketIds): Packet<any> | undefined {
