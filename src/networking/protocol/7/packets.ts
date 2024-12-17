@@ -1,7 +1,4 @@
-import type {
-    BasePacketData,
-    BasePacketOptions,
-} from "networking/protocol/basepacket";
+import type { BasePacketOptions } from "networking/protocol/basepacket";
 import {
     Packet,
     PacketIds,
@@ -16,16 +13,17 @@ import type { Connection } from "networking/server";
 import Player from "entities/player";
 import Vector3 from "datatypes/vector3";
 import { BlockIds } from "data/blocks";
-import type { ContextManager } from "contextmanager";
+import type {
+    IdentificationPacketData,
+    LevelDataChunkPacketData,
+    LevelFinalizePacketData,
+    LevelInitializePacketData,
+    PingPacketData,
+    SetBlockClientPacketData,
+    SetBlockServerPacketData,
+} from "networking/protocol/packetdata";
 
 const PROTOCOL_VERSION = 7;
-
-export interface IdentificationPacketData extends BasePacketData {
-    protocol: number;
-    name: string;
-    keyOrMotd: string;
-    userType: number;
-}
 
 export class IdentificationPacket7 extends Packet<IdentificationPacketData> {
     public readonly name = "Identification";
@@ -78,15 +76,15 @@ export class IdentificationPacket7 extends Packet<IdentificationPacketData> {
     }
 }
 
-export class PingPacket7 extends Packet<BasePacketData> {
+export class PingPacket7 extends Packet<PingPacketData> {
     public readonly name = "Ping";
     public readonly id = PacketIds.ping;
     public readonly size: number;
-    public readonly parser: BinaryParser<BasePacketData>;
+    public readonly parser: BinaryParser<PingPacketData>;
 
     constructor(options: BasePacketOptions) {
         super(options);
-        this.parser = new ParserBuilder<BasePacketData>()
+        this.parser = new ParserBuilder<PingPacketData>()
             .bigEndian()
             .uint8("id")
             .build();
@@ -98,15 +96,15 @@ export class PingPacket7 extends Packet<BasePacketData> {
     }
 }
 
-export class LevelInitializePacket7 extends Packet<BasePacketData> {
+export class LevelInitializePacket7 extends Packet<LevelInitializePacketData> {
     public readonly name = "LevelInitialize";
     public readonly id = PacketIds.levelInitialize;
     public readonly size: number;
-    public readonly parser: BinaryParser<BasePacketData>;
+    public readonly parser: BinaryParser<LevelInitializePacketData>;
 
     constructor(options: BasePacketOptions) {
         super(options);
-        this.parser = new ParserBuilder<BasePacketData>()
+        this.parser = new ParserBuilder<LevelInitializePacketData>()
             .bigEndian()
             .uint8("id")
             .build();
@@ -114,12 +112,6 @@ export class LevelInitializePacket7 extends Packet<BasePacketData> {
     }
 
     receiver = undefined;
-}
-
-export interface LevelDataChunkPacketData extends BasePacketData {
-    chunkLength: number;
-    chunkData: Uint8Array;
-    percentComplete: number;
 }
 
 export class LevelDataChunkPacket7 extends Packet<LevelDataChunkPacketData> {
@@ -143,12 +135,6 @@ export class LevelDataChunkPacket7 extends Packet<LevelDataChunkPacketData> {
     receiver = undefined;
 }
 
-export interface LevelFinalizePacketData extends BasePacketData {
-    worldSizeX: number;
-    worldSizeY: number;
-    worldSizeZ: number;
-}
-
 export class LevelFinalizePacket7 extends Packet<LevelFinalizePacketData> {
     public readonly name = "LevelFinalize";
     public readonly id = PacketIds.levelFinalize;
@@ -168,14 +154,6 @@ export class LevelFinalizePacket7 extends Packet<LevelFinalizePacketData> {
     }
 
     receiver = undefined;
-}
-
-export interface SetBlockClientPacketData extends BasePacketData {
-    x: number;
-    y: number;
-    z: number;
-    mode: number;
-    blockType: number;
 }
 
 export class SetBlockClientPacket7 extends Packet<SetBlockClientPacketData> {
@@ -215,13 +193,6 @@ export class SetBlockClientPacket7 extends Packet<SetBlockClientPacketData> {
     }
 }
 
-export interface SetBlockServerPacketData extends BasePacketData {
-    x: number;
-    y: number;
-    z: number;
-    blockType: number;
-}
-
 export class SetBlockServerPacket7 extends Packet<SetBlockServerPacketData> {
     public readonly name = "SetBlockClient";
     public readonly id = PacketIds.setBlockServer;
@@ -244,7 +215,7 @@ export class SetBlockServerPacket7 extends Packet<SetBlockServerPacketData> {
     receiver = undefined;
 }
 
-export const Packets = {
+export const PACKETS = {
     [PacketIds.identification]: IdentificationPacket7,
     [PacketIds.ping]: PingPacket7,
     [PacketIds.levelInitialize]: LevelInitializePacket7,

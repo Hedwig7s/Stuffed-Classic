@@ -5,16 +5,13 @@ import type {
 } from "utility/dataparser";
 import type BaseProtocol from "networking/protocol/baseprotocol";
 import type { ContextManager } from "contextmanager";
+import type { BasePacketData } from "networking/protocol/packetdata";
 
 export const STRING_OPTIONS: StringOptions = {
     encoding: "ascii",
     length: 64,
     type: "fixed",
 };
-
-export interface BasePacketData {
-    id: number;
-}
 
 export interface BasePacketOptions {
     context: ContextManager;

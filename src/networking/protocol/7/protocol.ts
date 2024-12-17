@@ -1,5 +1,5 @@
 import { BaseProtocol, parsePackets } from "networking/protocol/baseprotocol";
-import { Packets } from "./packets";
+import { PACKETS } from "./packets";
 import {
     Packet,
     PacketIds,
@@ -16,7 +16,7 @@ export class Protocol7 extends BaseProtocol {
     constructor(context: ContextManager) {
         super(context);
         this.packets = parsePackets(
-            Packets as Record<
+            PACKETS as Record<
                 PacketIds,
                 new (options: BasePacketOptions) => Packet<any>
             >,
