@@ -36,6 +36,14 @@ export abstract class Packet<T extends object> {
     }
     abstract receiver?(connection: Connection, data: Uint8Array): Promise<void>;
 }
+
+export interface ReceivablePacket<T extends BasePacketData> extends Packet<T> {
+    receiver(connection: Connection, data: Uint8Array): Promise<void>;
+}
+export interface SendablePacket<T extends BasePacketData> extends Packet<T> {
+    sender(connection: Connection, data: Omit<T, "id">): Promise<void>;
+}
+
 export enum PacketIds {
     Identification = 0x00,
     Ping = 0x01,
