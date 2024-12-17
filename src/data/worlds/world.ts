@@ -196,9 +196,8 @@ export class World {
                     );
                     continue;
                 }
-                const setBlockPacket = protocol.getPacket(
-                    PacketIds.setBlockServer
-                );
+                const setBlockPacket =
+                    protocol.packets[PacketIds.SetBlockServer];
                 if (!setBlockPacket || !setBlockPacket.sender) {
                     this.logger.error("No setBlockServer packet found!");
                     continue;

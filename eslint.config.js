@@ -17,10 +17,40 @@ export default [
         },
         rules: {
             "@typescript-eslint/no-explicit-any": "off",
-            "@typescript-eslint/naming-convention": "warn",
+            "@typescript-eslint/naming-convention": [
+                "warn",
+                {
+                    selector: "enumMember",
+                    format: ["PascalCase", "camelCase"],
+                },
+                {
+                    format: ["camelCase"],
+                    leadingUnderscore: "allow",
+                    selector: "default",
+                    trailingUnderscore: "allow",
+                },
+
+                {
+                    format: ["camelCase", "PascalCase"],
+                    selector: "import",
+                },
+
+                {
+                    format: ["camelCase", "UPPER_CASE"],
+                    leadingUnderscore: "allow",
+                    selector: "variable",
+                    trailingUnderscore: "allow",
+                },
+
+                {
+                    format: ["PascalCase"],
+                    selector: "typeLike",
+                },
+            ],
             "@typescript-eslint/no-unused-vars": "warn",
             "@stylistic/js/semi": ["warn", "always"],
         },
     },
+
     eslintConfigPrettier,
 ];

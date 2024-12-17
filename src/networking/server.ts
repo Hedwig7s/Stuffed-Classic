@@ -1,7 +1,7 @@
 import type { TCPSocketListener, Socket } from "bun";
 import { ArrayBufferSink } from "bun";
 import type { BaseProtocol } from "networking/protocol/baseprotocol";
-import type { PacketIds } from "networking/protocol/basepacket";
+import { PacketIds } from "networking/protocol/basepacket";
 import type { ContextManager } from "contextmanager";
 import type { Player } from "entities/player";
 import type pino from "pino";
@@ -93,8 +93,7 @@ export class Connection {
             }
 
             if (!this.protocol) return;
-
-            const packet = this.protocol.getPacket(id as PacketIds);
+            const packet = this.protocol.packets[id as PacketIds];
             if (!packet) {
                 throw new Error(`Packet ${id} not found`);
             }

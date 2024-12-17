@@ -27,7 +27,7 @@ const PROTOCOL_VERSION = 7;
 
 export class IdentificationPacket7 extends Packet<IdentificationPacketData> {
     public readonly name = "Identification";
-    public readonly id = PacketIds.identification;
+    public readonly id = PacketIds.Identification;
     public readonly size: number;
     public readonly parser: BinaryParser<IdentificationPacketData>;
 
@@ -45,9 +45,9 @@ export class IdentificationPacket7 extends Packet<IdentificationPacketData> {
     }
 
     async receiver(connection: Connection, data: Uint8Array) {
-        const clientPacket = assertPacket<IdentificationPacketData>(
+        const clientPacket = assertPacket(
             connection.protocol,
-            "Identification"
+            PacketIds.Identification
         );
         const parsed = this.parser.parse(data);
         const player = new Player({
@@ -78,7 +78,7 @@ export class IdentificationPacket7 extends Packet<IdentificationPacketData> {
 
 export class PingPacket7 extends Packet<PingPacketData> {
     public readonly name = "Ping";
-    public readonly id = PacketIds.ping;
+    public readonly id = PacketIds.Ping;
     public readonly size: number;
     public readonly parser: BinaryParser<PingPacketData>;
 
@@ -98,7 +98,7 @@ export class PingPacket7 extends Packet<PingPacketData> {
 
 export class LevelInitializePacket7 extends Packet<LevelInitializePacketData> {
     public readonly name = "LevelInitialize";
-    public readonly id = PacketIds.levelInitialize;
+    public readonly id = PacketIds.LevelInitialize;
     public readonly size: number;
     public readonly parser: BinaryParser<LevelInitializePacketData>;
 
@@ -116,7 +116,7 @@ export class LevelInitializePacket7 extends Packet<LevelInitializePacketData> {
 
 export class LevelDataChunkPacket7 extends Packet<LevelDataChunkPacketData> {
     public readonly name = "LevelDataChunk";
-    public readonly id = PacketIds.levelDataChunk;
+    public readonly id = PacketIds.LevelDataChunk;
     public readonly size: number;
     public readonly parser: BinaryParser<LevelDataChunkPacketData>;
 
@@ -137,7 +137,7 @@ export class LevelDataChunkPacket7 extends Packet<LevelDataChunkPacketData> {
 
 export class LevelFinalizePacket7 extends Packet<LevelFinalizePacketData> {
     public readonly name = "LevelFinalize";
-    public readonly id = PacketIds.levelFinalize;
+    public readonly id = PacketIds.LevelFinalize;
     public readonly size: number;
     public readonly parser: BinaryParser<LevelFinalizePacketData>;
 
@@ -158,7 +158,7 @@ export class LevelFinalizePacket7 extends Packet<LevelFinalizePacketData> {
 
 export class SetBlockClientPacket7 extends Packet<SetBlockClientPacketData> {
     public readonly name = "SetBlockClient";
-    public readonly id = PacketIds.setBlockClient;
+    public readonly id = PacketIds.SetBlockClient;
     public readonly size: number;
     public readonly parser: BinaryParser<SetBlockClientPacketData>;
 
@@ -195,7 +195,7 @@ export class SetBlockClientPacket7 extends Packet<SetBlockClientPacketData> {
 
 export class SetBlockServerPacket7 extends Packet<SetBlockServerPacketData> {
     public readonly name = "SetBlockClient";
-    public readonly id = PacketIds.setBlockServer;
+    public readonly id = PacketIds.SetBlockServer;
     public readonly size: number;
     public readonly parser: BinaryParser<SetBlockServerPacketData>;
 
@@ -216,11 +216,11 @@ export class SetBlockServerPacket7 extends Packet<SetBlockServerPacketData> {
 }
 
 export const PACKETS = {
-    [PacketIds.identification]: IdentificationPacket7,
-    [PacketIds.ping]: PingPacket7,
-    [PacketIds.levelInitialize]: LevelInitializePacket7,
-    [PacketIds.levelDataChunk]: LevelDataChunkPacket7,
-    [PacketIds.levelFinalize]: LevelFinalizePacket7,
-    [PacketIds.setBlockClient]: SetBlockClientPacket7,
-    [PacketIds.setBlockServer]: SetBlockServerPacket7,
+    [PacketIds.Identification]: IdentificationPacket7,
+    [PacketIds.Ping]: PingPacket7,
+    [PacketIds.LevelInitialize]: LevelInitializePacket7,
+    [PacketIds.LevelDataChunk]: LevelDataChunkPacket7,
+    [PacketIds.LevelFinalize]: LevelFinalizePacket7,
+    [PacketIds.SetBlockClient]: SetBlockClientPacket7,
+    [PacketIds.SetBlockServer]: SetBlockServerPacket7,
 };

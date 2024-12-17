@@ -3,7 +3,7 @@ import { Entity } from "./entity";
 import type { EntityOptions } from "./entity";
 import EntityPosition from "datatypes/entityposition";
 import type { World } from "data/worlds/world";
-import { assertPacket } from "networking/protocol/basepacket";
+import { assertPacket, PacketIds } from "networking/protocol/basepacket";
 
 export interface PlayerOptions extends EntityOptions {
     fancyName: string;
@@ -29,15 +29,15 @@ export class Player extends Entity {
         }
         const initializePacket = assertPacket(
             this.connection.protocol,
-            "LevelInitialize"
+            PacketIds.LevelInitialize
         );
         const dataPacket = assertPacket(
             this.connection.protocol,
-            "LevelDataChunk"
+            PacketIds.LevelDataChunk
         );
         const finalizePacket = assertPacket(
             this.connection.protocol,
-            "LevelFinalize"
+            PacketIds.LevelFinalize
         );
         if (
             !initializePacket.sender ||

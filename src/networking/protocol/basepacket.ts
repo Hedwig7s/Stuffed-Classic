@@ -37,27 +37,27 @@ export abstract class Packet<T extends object> {
     abstract receiver?(connection: Connection, data: Uint8Array): Promise<void>;
 }
 export enum PacketIds {
-    identification = 0x00,
-    ping = 0x01,
-    levelInitialize = 0x02,
-    levelDataChunk = 0x03,
-    levelFinalize = 0x04,
-    setBlockClient = 0x05,
-    setBlockServer = 0x06,
+    Identification = 0x00,
+    Ping = 0x01,
+    LevelInitialize = 0x02,
+    LevelDataChunk = 0x03,
+    LevelFinalize = 0x04,
+    SetBlockClient = 0x05,
+    SetBlockServer = 0x06,
 }
 
-export function assertPacket<T extends BasePacketData>(
+export function assertPacket<K extends keyof BaseProtocol["packets"]>(
     protocol: BaseProtocol | undefined,
-    name: string
-): Packet<T> {
+    name: K
+) {
     if (protocol == null) {
         throw new Error("Protocol not assigned");
     }
-    const packet = protocol.getPacket(name);
+    const packet = protocol.packets[name];
     if (packet == null) {
         throw new Error(`Packet ${name} not found`);
     }
-    return packet as unknown as Packet<T>;
+    return packet;
 }
 
 export function assertParserSize(parser?: BinaryParser<any>): number {

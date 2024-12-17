@@ -1,9 +1,18 @@
 import type { ContextManager } from "contextmanager";
-import type {
+import {
+    type Packet,
+    type BasePacketOptions,
     PacketIds,
-    Packet,
-    BasePacketOptions,
 } from "networking/protocol/basepacket";
+import type {
+    IdentificationPacketData,
+    LevelDataChunkPacketData,
+    LevelFinalizePacketData,
+    LevelInitializePacketData,
+    PingPacketData,
+    SetBlockClientPacketData,
+    SetBlockServerPacketData,
+} from "./packetdata";
 
 export function parsePackets(
     packets: Record<PacketIds, new (options: BasePacketOptions) => Packet<any>>,
@@ -19,25 +28,16 @@ export function parsePackets(
 
 export abstract class BaseProtocol {
     public abstract readonly version: number;
-    public abstract packets: Record<PacketIds, Packet<any>>;
+    public abstract packets: Partial<{
+        [PacketIds.Identification]: Packet<IdentificationPacketData>;
+        [PacketIds.Ping]: Packet<PingPacketData>;
+        [PacketIds.LevelInitialize]: Packet<LevelInitializePacketData>;
+        [PacketIds.LevelDataChunk]: Packet<LevelDataChunkPacketData>;
+        [PacketIds.LevelFinalize]: Packet<LevelFinalizePacketData>;
+        [PacketIds.SetBlockClient]: Packet<SetBlockClientPacketData>;
+        [PacketIds.SetBlockServer]: Packet<SetBlockServerPacketData>;
+    }>;
     constructor(public readonly context: ContextManager) {}
-    protected nameCache = new Map<string, Packet<any>>();
-    public getPacket(name: string | PacketIds): Packet<any> | undefined {
-        if (typeof name === "string") {
-            if (this.nameCache.has(name)) {
-                return this.nameCache.get(name);
-            }
-            for (const packet of Object.values(this.packets)) {
-                if (packet.name === name) {
-                    this.nameCache.set(name, packet);
-                    return packet;
-                }
-            }
-        } else if (typeof name === "number") {
-            return this.packets[name];
-        }
-        return;
-    }
     public abstract checkIdentifier(identifier: Uint8Array): boolean;
 }
 export default BaseProtocol;
