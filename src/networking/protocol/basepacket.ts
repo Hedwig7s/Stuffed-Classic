@@ -20,7 +20,7 @@ export interface BasePacketOptions {
 export abstract class Packet<T extends object> {
     public abstract readonly name: string;
     public abstract readonly id: number;
-    public abstract readonly parser: BinaryParser<T>;
+    public abstract readonly parser: BinaryParser<any>;
     public abstract readonly size: number;
     public readonly context: ContextManager;
     constructor({ context }: BasePacketOptions) {
