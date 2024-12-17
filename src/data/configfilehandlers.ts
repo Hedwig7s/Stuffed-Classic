@@ -10,8 +10,8 @@ export interface FileFormatHandler {
     };
     extension: string;
 }
-
-export const handlers = {
+type Handler = "json5" | "json" | "yaml" | "toml" | "xml";
+export const handlers: Record<Handler, FileFormatHandler> = {
     json5: {
         extension: "json5",
         handler: json5,
@@ -74,7 +74,7 @@ export const handlers = {
                     value = JSON.parse(json);
                 }
                 const parser = new xml.XMLBuilder({
-                    format: true,
+                    format: space ? true : false,
                     indentBy: " ".repeat(space ?? 4),
                 });
                 return parser.build(value) as string;

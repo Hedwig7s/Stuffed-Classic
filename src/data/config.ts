@@ -2,9 +2,10 @@ import { readFile, writeFile, exists, mkdir } from "fs/promises";
 import { join as joinPath } from "path";
 import { handlers, type FileFormatHandler } from "data/configfilehandlers";
 import { CONFIG_PATH } from "data/constants";
-import { existsSync, readFileSync, mkdirSync, writeFileSync } from "fs";
 import type pino from "pino";
 import { getSimpleLogger } from "utility/logger";
+import { unlink } from "fs/promises";
+import { existsSync, readFileSync } from "fs";
 
 export type ConfigData = Record<string | symbol, any>;
 export type ConfigObject<T extends ConfigData> = T & {
@@ -177,11 +178,10 @@ export class Config<T extends ConfigData = ConfigData> {
         this.fileHandler = fileHandler ?? handlers.json5;
     }
 
-    public getPath() {
-        return joinPath(
-            CONFIG_PATH,
-            `${this.name}.${this.fileHandler.extension.toLowerCase()}`
-        );
+    public getPath(
+        extension: string = this.fileHandler.extension.toLowerCase()
+    ) {
+        return joinPath(CONFIG_PATH, `${this.name}.${extension}`);
     }
 
     async save() {
@@ -196,22 +196,13 @@ export class Config<T extends ConfigData = ConfigData> {
         await writeFile(this.getPath(), encoded, { encoding: "utf-8" });
     }
 
-    saveSync() {
-        const encoded = this.fileHandler.handler.stringify(
-            this._config,
-            null,
-            4
-        );
-        if (!existsSync(CONFIG_PATH)) {
-            mkdirSync(CONFIG_PATH);
-        }
-        writeFileSync(this.getPath(), encoded, { encoding: "utf-8" });
-    }
-
-    protected _load(data: string) {
+    protected _load(
+        data: string,
+        handler: FileFormatHandler = this.fileHandler
+    ) {
         let parsed: ConfigData;
         try {
-            parsed = this.fileHandler.handler.parse(data) as ConfigData;
+            parsed = handler.handler.parse(data) as ConfigData;
         } catch (error) {
             this.logger.warn("Failed to load config!", error);
             return;
@@ -237,23 +228,42 @@ export class Config<T extends ConfigData = ConfigData> {
             return out;
         };
         this._config = parseObj(parsed, this.defaultConfig) as ConfigObject<T>;
-        if (this.autosave) this.saveSync();
+        if (this.autosave) this.save();
     }
-
-    async load() {
+    protected checkForOtherFormats() {
+        for (const handler of Object.values(handlers)) {
+            if (handler === this.fileHandler) continue;
+            const path = this.getPath(handler.extension);
+            if (existsSync(path)) {
+                (async () => {
+                    const data = await readFile(path, "utf-8");
+                    this._load(data, handler);
+                    unlink(path);
+                })();
+                return true;
+            }
+        }
+        return false;
+    }
+    public async load() {
         const path = this.getPath();
         if (!(await exists(path))) {
-            await this.save();
+            const found = this.checkForOtherFormats();
+            if (!found) {
+                this.save();
+            }
             return;
         }
         const data = await readFile(path, "utf-8");
         this._load(data);
     }
-
-    loadSync() {
+    public loadSync() {
         const path = this.getPath();
         if (!existsSync(path)) {
-            this.saveSync();
+            const found = this.checkForOtherFormats();
+            if (!found) {
+                this.save();
+            }
             return;
         }
         const data = readFileSync(path, "utf-8");
