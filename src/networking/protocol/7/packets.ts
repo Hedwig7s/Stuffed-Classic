@@ -1,4 +1,7 @@
-import type { BasePacketData, BasePacketOptions } from "networking/protocol/basepacket";
+import type {
+    BasePacketData,
+    BasePacketOptions,
+} from "networking/protocol/basepacket";
 import {
     Packet,
     PacketIds,

@@ -1,13 +1,16 @@
 import { readFile, writeFile, exists, mkdir } from "fs/promises";
 import { join as joinPath } from "path";
-import json5 from "json5";
+import { handlers, type FileFormatHandler } from "data/configfilehandlers";
 import { CONFIG_PATH } from "data/constants";
-import { existsSync, readFileSync } from "fs";
+import { existsSync, readFileSync, mkdirSync, writeFileSync } from "fs";
 import type pino from "pino";
 import { getSimpleLogger } from "utility/logger";
 
 export type ConfigData = Record<string | symbol, any>;
-export type ConfigObject<T extends ConfigData> = T & { version: number, lastUpdated: number };
+export type ConfigObject<T extends ConfigData> = T & {
+    version: number;
+    lastUpdated: number;
+};
 
 function isObject(value: any) {
     return typeof value === "object" && value !== null && !Array.isArray(value);
@@ -30,9 +33,8 @@ function verifyConfigKey(
     );
 }
 
-function verifyConfig(config: any, defaultConfig: ConfigData, instance:Config) {
+function verifyConfig(config: any, defaultConfig: ConfigData) {
     if (!isObject(defaultConfig) || !isObject(config)) {
-        instance.logger.warn("Invalid config passed into verifyConfig");
         return false;
     }
 
@@ -48,7 +50,7 @@ function verifyConfig(config: any, defaultConfig: ConfigData, instance:Config) {
         const defaultValue = defaultConfig[key];
 
         if (value && isObject(value)) {
-            if (!verifyConfig(value, defaultValue, instance)) {
+            if (!verifyConfig(value, defaultValue)) {
                 return false;
             }
         }
@@ -65,7 +67,11 @@ function createProxy<T extends ConfigData>(
         get(target, key) {
             if (typeof target[key] === "object") {
                 const value = target[key];
-                return createProxy<typeof value>(value, defaultConfig[key], instance);
+                return createProxy<typeof value>(
+                    value,
+                    defaultConfig[key],
+                    instance
+                );
             }
             if (!(key in target)) {
                 target[key] = structuredClone(defaultConfig[key]);
@@ -76,7 +82,7 @@ function createProxy<T extends ConfigData>(
             if (
                 (isObject(value) &&
                     isObject(defaultConfig[key]) &&
-                    verifyConfig(value, defaultConfig[key], instance)) ||
+                    verifyConfig(value, defaultConfig[key])) ||
                 (key in defaultConfig &&
                     verifyConfigValues(value, defaultConfig[key]))
             ) {
@@ -84,12 +90,15 @@ function createProxy<T extends ConfigData>(
                 if (instance && instance.autosave) {
                     instance.save();
                 }
-                Reflect.set(target, "lastUpdate",Math.floor(Date.now()/1000));
+                Reflect.set(
+                    target,
+                    "lastUpdate",
+                    Math.floor(Date.now() / 1000)
+                );
                 return ret;
             } else {
                 throw new Error(`Invalid value for key ${String(key)}`);
             }
-            return false;
         },
     }) as T;
 }
@@ -99,22 +108,37 @@ export interface ConfigOptions<T extends ConfigData = ConfigData> {
     name: string;
     version: number;
     autosave?: boolean;
+    handler?: keyof typeof handlers | FileFormatHandler;
 }
-const reservedKeys = ["version","lastUpdated"]
+
+const reservedKeys = ["version", "lastUpdated"];
+
 export class Config<T extends ConfigData = ConfigData> {
     private _config: ConfigObject<T>;
     public get config() {
-        return createProxy(this._config, this.defaultConfig, this) as ConfigObject<T>;
+        return createProxy(
+            this._config,
+            this.defaultConfig,
+            this
+        ) as ConfigObject<T>;
     }
     public readonly defaultConfig: Readonly<ConfigObject<T>>;
     public readonly name: string;
     public readonly version: number;
     public readonly logger: pino.Logger;
+    public readonly fileHandler: FileFormatHandler;
     public autosave: boolean;
-    constructor({ defaultConfig, name, version, autosave }: ConfigOptions<T>) {
-        // TODO: updaters and validator
-        this.logger = getSimpleLogger("Config "+name);
+
+    constructor({
+        defaultConfig,
+        name,
+        version,
+        autosave,
+        handler,
+    }: ConfigOptions<T>) {
+        this.logger = getSimpleLogger("Config " + name);
         this._config = structuredClone(defaultConfig) as ConfigObject<T>;
+
         for (const key of reservedKeys) {
             if (key in defaultConfig) {
                 this.logger.warn(
@@ -124,45 +148,84 @@ export class Config<T extends ConfigData = ConfigData> {
         }
         const def = structuredClone(defaultConfig) as ConfigObject<T>;
         def.version = version;
-        def.lastUpdated = Math.floor(Date.now()/1000);
+        def.lastUpdated = Math.floor(Date.now() / 1000);
+        this._config.lastUpdated = def.lastUpdated;
+        this._config.version = version;
         this.defaultConfig = Object.freeze(def);
         this.version = version;
         this.name = name;
         this.autosave = autosave ?? true;
-        this._config.version = version;
+
+        let fileHandler: FileFormatHandler | undefined;
+        if (handler) {
+            if (typeof handler === "string") {
+                fileHandler = handlers[handler];
+            } else {
+                fileHandler = handler;
+            }
+        } else if (
+            process.env.CONFIG_FORMAT &&
+            process.env.CONFIG_FORMAT !== ""
+        ) {
+            const format = process.env.CONFIG_FORMAT.toLowerCase();
+            if (format in handlers) {
+                fileHandler = handlers[format as keyof typeof handlers];
+            } else {
+                this.logger.warn(`Invalid file format ${format}`);
+            }
+        }
+        this.fileHandler = fileHandler ?? handlers.json5;
     }
+
     public getPath() {
-        return joinPath(CONFIG_PATH, `${this.name}.json5`);
+        return joinPath(
+            CONFIG_PATH,
+            `${this.name}.${this.fileHandler.extension.toLowerCase()}`
+        );
     }
+
     async save() {
-        const encoded = json5.stringify(this._config, {
-            space: 4,
-        });
+        const encoded = this.fileHandler.handler.stringify(
+            this._config,
+            null,
+            4
+        );
         if (!(await exists(CONFIG_PATH))) {
             await mkdir(CONFIG_PATH);
         }
-        writeFile(this.getPath(), encoded, { encoding: "utf-8" });
+        await writeFile(this.getPath(), encoded, { encoding: "utf-8" });
     }
+
+    saveSync() {
+        const encoded = this.fileHandler.handler.stringify(
+            this._config,
+            null,
+            4
+        );
+        if (!existsSync(CONFIG_PATH)) {
+            mkdirSync(CONFIG_PATH);
+        }
+        writeFileSync(this.getPath(), encoded, { encoding: "utf-8" });
+    }
+
     protected _load(data: string) {
         let parsed: ConfigData;
         try {
-            parsed = json5.parse(data) as ConfigData;
-        } catch {
-            console.warn("Failed to load config!");
+            parsed = this.fileHandler.handler.parse(data) as ConfigData;
+        } catch (error) {
+            this.logger.warn("Failed to load config!", error);
             return;
         }
-        const parseObj = function (
+        const parseObj = (
             obj: ConfigData,
             defaultObj: ConfigData
-        ): ConfigData {
+        ): ConfigData => {
             const out: ConfigData = {};
             for (const key of new Set([
                 ...Object.keys(obj),
                 ...Object.keys(defaultObj),
             ])) {
-                if (!(key in defaultObj)) {
-                    continue;
-                }
+                if (!(key in defaultObj)) continue;
                 let value = obj[key] ?? structuredClone(defaultObj[key]);
                 if (!verifyConfigKey(key, obj, defaultObj)) {
                     value = structuredClone(defaultObj[key]);
@@ -174,22 +237,26 @@ export class Config<T extends ConfigData = ConfigData> {
             return out;
         };
         this._config = parseObj(parsed, this.defaultConfig) as ConfigObject<T>;
-        if (this.autosave) this.save();
+        if (this.autosave) this.saveSync();
     }
+
     async load() {
         const path = this.getPath();
         if (!(await exists(path))) {
+            await this.save();
             return;
         }
-        const data = (await readFile(path)).toString("utf-8");
+        const data = await readFile(path, "utf-8");
         this._load(data);
     }
+
     loadSync() {
         const path = this.getPath();
-        if (!existsSync) {
+        if (!existsSync(path)) {
+            this.saveSync();
             return;
         }
-        const data = readFileSync(path).toString("utf-8");
+        const data = readFileSync(path, "utf-8");
         this._load(data);
     }
 }

@@ -42,7 +42,7 @@ export class Entity {
         register,
         unregister,
     }: EntityOptions) {
-        this.logger = getSimpleLogger("Entity "+name);
+        this.logger = getSimpleLogger("Entity " + name);
         this.context = context;
         this.unregister = unregister ?? true;
         if (register ?? true) {

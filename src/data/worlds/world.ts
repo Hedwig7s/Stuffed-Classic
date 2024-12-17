@@ -55,7 +55,7 @@ export class World {
     public readonly logger: pino.Logger;
 
     constructor({ name, size, spawn, blocks, context }: WorldOptions) {
-        this.logger = getSimpleLogger("World "+name);
+        this.logger = getSimpleLogger("World " + name);
         this.name = name;
         this.size = size;
         this._blocks = new Uint8Array(this.size.product()).fill(0);
@@ -154,7 +154,7 @@ export class World {
                 clearTimeout(timeout);
                 resolve();
             });
-            const headerParser = new ParserBuilder<{levelSize: number}>()
+            const headerParser = new ParserBuilder<{ levelSize: number }>()
                 .bigEndian()
                 .int32("levelSize")
                 .build();
@@ -186,23 +186,32 @@ export class World {
         const index = getBlockIndex(position, this.size);
         this._blocks[index] = blockId;
         this.lastUpdate = Date.now();
-        for (const entity of this.entities.values()) { // Perhaps replace with events at a later point
+        for (const entity of this.entities.values()) {
+            // Perhaps replace with events at a later point
             if (entity instanceof Player) {
                 const protocol = entity.connection?.protocol;
                 if (!protocol || !entity.connection) {
-                    this.logger.error("No connection/protocol on registered player!");
+                    this.logger.error(
+                        "No connection/protocol on registered player!"
+                    );
                     continue;
                 }
-                const setBlockPacket = protocol.getPacket(PacketIds.setBlockServer);
+                const setBlockPacket = protocol.getPacket(
+                    PacketIds.setBlockServer
+                );
                 if (!setBlockPacket || !setBlockPacket.sender) {
                     this.logger.error("No setBlockServer packet found!");
                     continue;
                 }
 
-                setBlockPacket.sender(entity.connection,{x:position.x,y:position.y,z:position.z,blockType:blockId});
+                setBlockPacket.sender(entity.connection, {
+                    x: position.x,
+                    y: position.y,
+                    z: position.z,
+                    blockType: blockId,
+                });
             }
         }
-
     }
     getBlock(position: Vector3) {
         const index = getBlockIndex(position, this.size);

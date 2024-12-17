@@ -13,8 +13,14 @@ export class Protocol7 extends BaseProtocol {
     public checkIdentifier(identifier: Uint8Array): boolean {
         return identifier[1] === this.version;
     }
-    constructor(context:ContextManager) {
+    constructor(context: ContextManager) {
         super(context);
-        this.packets = parsePackets(Packets as Record<PacketIds, new (options: BasePacketOptions) => Packet<any>>, context);
+        this.packets = parsePackets(
+            Packets as Record<
+                PacketIds,
+                new (options: BasePacketOptions) => Packet<any>
+            >,
+            context
+        );
     }
 }

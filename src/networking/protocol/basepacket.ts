@@ -26,7 +26,7 @@ export abstract class Packet<T extends object> {
     public abstract readonly parser: BinaryParser<T>;
     public abstract readonly size: number;
     public readonly context: ContextManager;
-    constructor({context}: BasePacketOptions) {
+    constructor({ context }: BasePacketOptions) {
         this.context = context;
     }
     async sender?(connection: Connection, data: Omit<T, "id">) {
