@@ -39,3 +39,13 @@ export interface SetBlockServerPacketData extends BasePacketData {
     z: number;
     blockType: number;
 }
+
+export interface SpawnPlayerPacketData extends BasePacketData {
+    entityId: number;
+    name: string;
+    x: number;
+    y: number;
+    z: number;
+    yaw: number;
+    pitch: number;
+}

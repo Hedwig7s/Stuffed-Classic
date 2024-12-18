@@ -1,5 +1,6 @@
 import type { BasePacketOptions } from "networking/protocol/basepacket";
 import {
+    FIXED_STRING_OPTIONS as FIXED_OPTIONS,
     Packet,
     PacketIds,
     assertParserSize,
@@ -21,6 +22,7 @@ import type {
     PingPacketData,
     SetBlockClientPacketData,
     SetBlockServerPacketData,
+    SpawnPlayerPacketData,
 } from "networking/protocol/packetdata";
 
 const PROTOCOL_VERSION = 7;
@@ -212,6 +214,30 @@ export class SetBlockServerPacket7 extends Packet<SetBlockServerPacketData> {
         this.size = assertParserSize(this.parser);
     }
 
+    receiver = undefined;
+}
+
+export class SpawnPlayer extends Packet<SpawnPlayerPacketData> {
+    public readonly name = "SpawnPlayer";
+    public readonly id = PacketIds.SpawnPlayer;
+    public readonly size: number;
+    public readonly parser: BinaryParser<SpawnPlayerPacketData>;
+
+    constructor(options: BasePacketOptions) {
+        super(options);
+        this.parser = new ParserBuilder<SpawnPlayerPacketData>()
+            .bigEndian()
+            .uint8("id")
+            .int8("entityId")
+            .string("name", STRING_OPTIONS)
+            .fixed("x", FIXED_OPTIONS)
+            .fixed("y", FIXED_OPTIONS)
+            .fixed("z", FIXED_OPTIONS)
+            .fixed("yaw", FIXED_OPTIONS)
+            .fixed("pitch", FIXED_OPTIONS)
+            .build();
+        this.size = assertParserSize(this.parser);
+    }
     receiver = undefined;
 }
 

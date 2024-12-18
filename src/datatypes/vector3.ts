@@ -1,3 +1,5 @@
+import { fromFixed, toFixed } from "utility/fixed";
+
 export default class Vector3 {
     protected _x: number;
     protected _y: number;
@@ -58,6 +60,24 @@ export default class Vector3 {
     }
     toString(): string {
         return `${this._x},${this._y},${this._z}`;
+    }
+    toFixed(precision: number): Vector3 {
+        return new Vector3(
+            ...(toFixed(precision, this._x, this._y, this._z) as [
+                number,
+                number,
+                number,
+            ])
+        );
+    }
+    fromFixed(precision: number): Vector3 {
+        return new Vector3(
+            ...(fromFixed(precision, this._x, this._y, this._z) as [
+                number,
+                number,
+                number,
+            ])
+        );
     }
     product(): number {
         return this._x * this._y * this._z;

@@ -4,21 +4,31 @@ import type { EntityOptions } from "./entity";
 import EntityPosition from "datatypes/entityposition";
 import type { World } from "data/worlds/world";
 import { assertPacket, PacketIds } from "networking/protocol/basepacket";
+import { Broadcaster } from "networking/protocol/broadcaster";
+import type { SpawnPlayerPacketData } from "networking/protocol/packetdata";
+import { criterias, modifiers } from "networking/protocol/broadcasterutil";
 
 export interface PlayerOptions extends EntityOptions {
-    fancyName: string;
     connection?: Connection;
 }
 
 export class Player extends Entity {
-    fancyName: string;
     connection?: Connection;
-
+    broadcasters: {
+        [PacketIds.SpawnPlayer]: Broadcaster<SpawnPlayerPacketData>;
+    };
     constructor(options: PlayerOptions) {
         super(options);
-        const { fancyName, register } = options;
-        this.fancyName = fancyName;
+        const { register } = options;
         this.connection = options.connection;
+        this.broadcasters = {
+            [PacketIds.SpawnPlayer]: new Broadcaster<SpawnPlayerPacketData>({
+                packetId: PacketIds.SpawnPlayer,
+                context: this.context,
+                criteria: criterias.sameWorld(this),
+                modifier: modifiers.selfId<SpawnPlayerPacketData>(this),
+            }),
+        };
         if (register ?? true) {
             this.context.playerRegistry.register(this);
         }
@@ -70,6 +80,46 @@ export class Player extends Entity {
             })
             .catch(this.connection.onError.bind(this.connection));
         super.loadWorld(world);
+    }
+    spawn() {
+        super.spawn();
+        if (!this.world || this.worldEntityId === -1) {
+            throw new Error("Player has no world");
+        }
+        const { x, y, z, yaw, pitch } = this.position;
+        this.broadcasters[PacketIds.SpawnPlayer].broadcast({
+            entityId: this.worldEntityId,
+            name: this.fancyName,
+            x,
+            y,
+            z,
+            yaw,
+            pitch,
+        });
+        if (!this.connection?.protocol) return;
+        const spawnPacket = assertPacket(
+            this.connection.protocol,
+            PacketIds.SpawnPlayer
+        );
+        for (const player of this.world.entities.values()) {
+            if (player === this) continue;
+
+            if (!spawnPacket.sender) continue;
+            if (!player.world) continue;
+            if (player.worldEntityId === -1) continue;
+            const { x, y, z, yaw, pitch } = player.position;
+            spawnPacket
+                .sender(this.connection, {
+                    entityId: player.worldEntityId,
+                    name: player.fancyName,
+                    x,
+                    y,
+                    z,
+                    yaw,
+                    pitch,
+                })
+                .catch(this.connection.onError.bind(this.connection));
+        }
     }
     move(position: EntityPosition) {
         super.move(position);

@@ -1,6 +1,7 @@
 import type { Connection } from "networking/server";
 import type {
     BinaryParserType as BinaryParser,
+    FixedOptions,
     StringOptions,
 } from "utility/dataparser";
 import type BaseProtocol from "networking/protocol/baseprotocol";
@@ -11,6 +12,12 @@ export const STRING_OPTIONS: StringOptions = {
     encoding: "ascii",
     length: 64,
     type: "fixed",
+};
+
+export const FIXED_STRING_OPTIONS: FixedOptions = {
+    size: 1,
+    point: 5,
+    signed: true,
 };
 
 export interface BasePacketOptions {
@@ -52,6 +59,7 @@ export enum PacketIds {
     LevelFinalize = 0x04,
     SetBlockClient = 0x05,
     SetBlockServer = 0x06,
+    SpawnPlayer = 0x07,
 }
 
 export function assertPacket<K extends keyof BaseProtocol["packets"]>(

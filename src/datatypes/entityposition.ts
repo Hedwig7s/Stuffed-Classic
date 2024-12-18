@@ -1,3 +1,4 @@
+import { fromFixed, toFixed } from "utility/fixed";
 import Vector3 from "./vector3";
 
 export default class EntityPosition {
@@ -38,5 +39,30 @@ export default class EntityPosition {
     }
     toString(): string {
         return `${this._position.toString()},${this._yaw},${this._pitch}`;
+    }
+    toFixed(precision: number): EntityPosition {
+        return new EntityPosition(
+            ...(toFixed(
+                precision,
+                this._position.x,
+                this._position.y,
+                this._position.z
+            ) as [number, number, number]),
+            ...(toFixed(precision, this._yaw, this._pitch) as [number, number])
+        );
+    }
+    fromFixed(precision: number): EntityPosition {
+        return new EntityPosition(
+            ...(fromFixed(
+                precision,
+                this._position.x,
+                this._position.y,
+                this._position.z
+            ) as [number, number, number]),
+            ...(fromFixed(precision, this._yaw, this._pitch) as [
+                number,
+                number,
+            ])
+        );
     }
 }

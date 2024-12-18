@@ -12,6 +12,7 @@ import type {
     PingPacketData,
     SetBlockClientPacketData,
     SetBlockServerPacketData,
+    SpawnPlayerPacketData,
 } from "./packetdata";
 
 export function parsePackets(
@@ -36,6 +37,7 @@ export abstract class BaseProtocol {
         [PacketIds.LevelFinalize]: Packet<LevelFinalizePacketData>;
         [PacketIds.SetBlockClient]: Packet<SetBlockClientPacketData>;
         [PacketIds.SetBlockServer]: Packet<SetBlockServerPacketData>;
+        [PacketIds.SpawnPlayer]: Packet<SpawnPlayerPacketData>;
     }>;
     constructor(public readonly context: ContextManager) {}
     public abstract checkIdentifier(identifier: Uint8Array): boolean;

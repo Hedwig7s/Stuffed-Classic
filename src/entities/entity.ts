@@ -4,10 +4,12 @@ import type { World } from "data/worlds/world";
 import type { EntityRegistry } from "entities/entityregistry";
 import type pino from "pino";
 import { getSimpleLogger } from "utility/logger";
+import Vector3 from "datatypes/vector3";
 
 export interface EntityOptions {
     position?: EntityPosition;
     name: string;
+    fancyName: string;
     context: ContextManager;
     register?: boolean; // If false, the entity will not be registered automatically, default behavior is to register.
     unregister?: boolean; // If set, the entity will be unregistered from the registries. Default behavior is to unregister
@@ -20,6 +22,7 @@ export class Entity {
     }
     public readonly ids = new Map<EntityRegistry, string>();
     public name: string;
+    public fancyName: string;
     public readonly context: ContextManager;
     public destroyed: boolean;
     protected unregister: boolean;
@@ -41,9 +44,11 @@ export class Entity {
         context,
         register,
         unregister,
+        fancyName,
     }: EntityOptions) {
         this.logger = getSimpleLogger("Entity " + name);
         this.context = context;
+        this.fancyName = fancyName;
         this.unregister = unregister ?? true;
         if (register ?? true) {
             this.context.entityRegistry.register(this);
@@ -69,7 +74,7 @@ export class Entity {
         this.spawn();
     }
     spawn() {
-        if (!this.world) {
+        if (!this.world || this.worldEntityId === -1) {
             throw new Error("Entity has no world");
         }
         this._position = this.world.spawn;
