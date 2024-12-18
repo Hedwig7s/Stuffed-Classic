@@ -217,7 +217,7 @@ export class SetBlockServerPacket7 extends Packet<SetBlockServerPacketData> {
     receiver = undefined;
 }
 
-export class SpawnPlayer extends Packet<SpawnPlayerPacketData> {
+export class SpawnPlayerPacket7 extends Packet<SpawnPlayerPacketData> {
     public readonly name = "SpawnPlayer";
     public readonly id = PacketIds.SpawnPlayer;
     public readonly size: number;
@@ -249,4 +249,5 @@ export const PACKETS = {
     [PacketIds.LevelFinalize]: LevelFinalizePacket7,
     [PacketIds.SetBlockClient]: SetBlockClientPacket7,
     [PacketIds.SetBlockServer]: SetBlockServerPacket7,
+    [PacketIds.SpawnPlayer]: SpawnPlayerPacket7,
 };
