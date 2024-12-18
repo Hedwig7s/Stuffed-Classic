@@ -1,7 +1,7 @@
 import type { TCPSocketListener, Socket } from "bun";
 import { ArrayBufferSink } from "bun";
 import type { BaseProtocol } from "networking/protocol/baseprotocol";
-import { PacketIds } from "networking/protocol/basepacket";
+import { PacketIds } from "networking/packet/basepacket";
 import type { ContextManager } from "contextmanager";
 import type { Player } from "entities/player";
 import type pino from "pino";

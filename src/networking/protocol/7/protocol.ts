@@ -4,7 +4,7 @@ import {
     Packet,
     PacketIds,
     type BasePacketOptions,
-} from "networking/protocol/basepacket";
+} from "networking/packet/basepacket";
 import type { ContextManager } from "contextmanager";
 
 export class Protocol7 extends BaseProtocol {

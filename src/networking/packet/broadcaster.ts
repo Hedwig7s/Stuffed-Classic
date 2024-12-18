@@ -1,4 +1,4 @@
-import type { Packet, PacketIds } from "networking/protocol/basepacket";
+import type { Packet, PacketIds } from "networking/packet/basepacket";
 import type { Connection } from "networking/server";
 import type { BasePacketData } from "./packetdata";
 import type { ContextManager } from "contextmanager";

@@ -6,7 +6,7 @@ import type {
 } from "utility/dataparser";
 import type BaseProtocol from "networking/protocol/baseprotocol";
 import type { ContextManager } from "contextmanager";
-import type { BasePacketData } from "networking/protocol/packetdata";
+import type { BasePacketData } from "networking/packet/packetdata";
 
 export const STRING_OPTIONS: StringOptions = {
     encoding: "ascii",

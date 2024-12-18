@@ -3,7 +3,7 @@ import {
     type Packet,
     type BasePacketOptions,
     PacketIds,
-} from "networking/protocol/basepacket";
+} from "networking/packet/basepacket";
 import type {
     IdentificationPacketData,
     LevelDataChunkPacketData,
@@ -13,7 +13,7 @@ import type {
     SetBlockClientPacketData,
     SetBlockServerPacketData,
     SpawnPlayerPacketData,
-} from "./packetdata";
+} from "../packet/packetdata";
 
 export function parsePackets(
     packets: Record<PacketIds, new (options: BasePacketOptions) => Packet<any>>,

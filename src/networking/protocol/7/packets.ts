@@ -1,11 +1,11 @@
-import type { BasePacketOptions } from "networking/protocol/basepacket";
+import type { BasePacketOptions } from "networking/packet/basepacket";
 import {
     FIXED_STRING_OPTIONS as FIXED_OPTIONS,
     Packet,
     PacketIds,
     assertParserSize,
-} from "networking/protocol/basepacket";
-import { assertPacket, STRING_OPTIONS } from "networking/protocol/basepacket";
+} from "networking/packet/basepacket";
+import { assertPacket, STRING_OPTIONS } from "networking/packet/basepacket";
 import {
     ParserBuilder,
     type BinaryParserType as BinaryParser,
@@ -23,7 +23,7 @@ import type {
     SetBlockClientPacketData,
     SetBlockServerPacketData,
     SpawnPlayerPacketData,
-} from "networking/protocol/packetdata";
+} from "networking/packet/packetdata";
 
 const PROTOCOL_VERSION = 7;
 

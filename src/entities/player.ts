@@ -3,10 +3,10 @@ import { Entity } from "./entity";
 import type { EntityOptions } from "./entity";
 import EntityPosition from "datatypes/entityposition";
 import type { World } from "data/worlds/world";
-import { assertPacket, PacketIds } from "networking/protocol/basepacket";
-import { Broadcaster } from "networking/protocol/broadcaster";
-import type { SpawnPlayerPacketData } from "networking/protocol/packetdata";
-import { criterias, modifiers } from "networking/protocol/broadcasterutil";
+import { assertPacket, PacketIds } from "networking/packet/basepacket";
+import { Broadcaster } from "networking/packet/broadcaster";
+import type { SpawnPlayerPacketData } from "networking/packet/packetdata";
+import { criterias, modifiers } from "networking/packet/broadcasterutil";
 
 export interface PlayerOptions extends EntityOptions {
     connection?: Connection;

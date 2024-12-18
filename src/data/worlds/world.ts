@@ -14,7 +14,7 @@ import { concatUint8Arrays } from "uint8array-extras";
 import Player from "entities/player";
 import type pino from "pino";
 import { getSimpleLogger } from "utility/logger";
-import { PacketIds } from "networking/protocol/basepacket";
+import { PacketIds } from "networking/packet/basepacket";
 
 export interface WorldOptions {
     name: string;
