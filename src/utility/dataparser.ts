@@ -447,12 +447,13 @@ class BinaryParser<T extends ParserData<T>> {
                     const fixedValue = Math.floor(
                         value * (1 << fixedFormat.point)
                     );
-                    if (
-                        fixedValue < -(1 << (fixedFormat.size * 8 - 1)) ||
-                        fixedValue >= 1 << (fixedFormat.size * 8 - 1)
-                    ) {
+                    const [ minValue, maxValue ] = [
+                        -(1 << (fixedFormat.size * 8 - 1)),
+                        (1 << (fixedFormat.size * 8 - 1)) - 1,
+                    ];
+                    if (fixedValue < minValue || fixedValue > maxValue) {
                         throw new Error(
-                            `Fixed value ${String(format.key)} out of range`
+                            `Fixed value ${String(format.key)} out of range. Value ${value}, Fixed value ${fixedValue}`
                         );
                     }
                     checkSize(fixedFormat.size);

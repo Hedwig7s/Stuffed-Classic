@@ -1,10 +1,10 @@
-import { BaseProtocol, parsePackets } from "networking/protocol/baseprotocol";
+import { BaseProtocol, parsePackets } from "networking/protocol/protocol";
 import { PACKETS } from "./packets";
 import {
     Packet,
     PacketIds,
     type BasePacketOptions,
-} from "networking/packet/basepacket";
+} from "networking/packet/packet";
 import type { ContextManager } from "contextmanager";
 
 export class Protocol7 extends BaseProtocol {

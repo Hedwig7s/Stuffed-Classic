@@ -1,7 +1,7 @@
 import { WorldManager } from "data/worlds/worldmanager";
 import { Config } from "data/config";
 import { Server } from "networking/server";
-import type { BaseProtocol } from "networking/protocol/baseprotocol";
+import type { BaseProtocol } from "networking/protocol/protocol";
 import { Protocol7 } from "networking/protocol/7/protocol";
 import { EntityRegistry } from "entities/entityregistry";
 import World from "data/worlds/world";

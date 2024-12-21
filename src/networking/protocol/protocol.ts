@@ -3,7 +3,7 @@ import {
     type Packet,
     type BasePacketOptions,
     PacketIds,
-} from "networking/packet/basepacket";
+} from "networking/packet/packet";
 import type {
     IdentificationPacketData,
     LevelDataChunkPacketData,

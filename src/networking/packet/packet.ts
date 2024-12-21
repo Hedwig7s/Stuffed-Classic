@@ -4,7 +4,7 @@ import type {
     FixedOptions,
     StringOptions,
 } from "utility/dataparser";
-import type BaseProtocol from "networking/protocol/baseprotocol";
+import type BaseProtocol from "networking/protocol/protocol";
 import type { ContextManager } from "contextmanager";
 import type { BasePacketData } from "networking/packet/packetdata";
 
@@ -14,7 +14,13 @@ export const STRING_OPTIONS: StringOptions = {
     type: "fixed",
 };
 
-export const FIXED_STRING_OPTIONS: FixedOptions = {
+export const FIXED_SHORT_OPTIONS: FixedOptions = {
+    size: 2,
+    point: 5,
+    signed: true,
+};
+
+export const FIXED_BYTE_OPTIONS: FixedOptions = {
     size: 1,
     point: 5,
     signed: true,

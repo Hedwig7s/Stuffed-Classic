@@ -1,17 +1,17 @@
-import type { BasePacketOptions } from "networking/packet/basepacket";
+import type { BasePacketOptions } from "networking/packet/packet";
 import {
-    FIXED_STRING_OPTIONS as FIXED_OPTIONS,
+    FIXED_SHORT_OPTIONS as FIXED_SHORT_OPTIONS,
     Packet,
     PacketIds,
     assertParserSize,
-} from "networking/packet/basepacket";
-import { assertPacket, STRING_OPTIONS } from "networking/packet/basepacket";
+} from "networking/packet/packet";
+import { assertPacket, STRING_OPTIONS } from "networking/packet/packet";
 import {
     ParserBuilder,
     type BinaryParserType as BinaryParser,
 } from "utility/dataparser";
 import type { Connection } from "networking/server";
-import Player from "entities/player";
+import Player from "player/player";
 import Vector3 from "datatypes/vector3";
 import { BlockIds } from "data/blocks";
 import type {
@@ -55,7 +55,6 @@ export class IdentificationPacket7 extends Packet<IdentificationPacketData> {
         const player = new Player({
             name: parsed.name,
             fancyName: parsed.name,
-            register: true,
             context: connection.context,
             connection: connection,
         });
@@ -69,11 +68,11 @@ export class IdentificationPacket7 extends Packet<IdentificationPacketData> {
             keyOrMotd: "A stuffed classic server", // TODO: Use the config
             userType: 0, // TODO: Roles
         });
-        if (!connection.context.defaultWorld) {
+        if (connection.context.defaultWorld == null) {
             throw new Error("Default world not set");
         }
-        player
-            .loadWorld(connection.context.defaultWorld)
+        player.entity
+            ?.spawn(connection.context.defaultWorld)
             .catch(connection.onError.bind(connection));
     }
 }
@@ -182,7 +181,7 @@ export class SetBlockClientPacket7 extends Packet<SetBlockClientPacketData> {
         const parsed = this.parser.parse(data);
         const player = connection.player;
         if (!player) return;
-        const world = player.world;
+        const world = player.entity?.world;
         if (!world) return;
         if (!BlockIds[parsed.blockType]) {
             connection.logger.warn(`Illegal block id: ${parsed.blockType}`);
@@ -230,11 +229,11 @@ export class SpawnPlayerPacket7 extends Packet<SpawnPlayerPacketData> {
             .uint8("id")
             .int8("entityId")
             .string("name", STRING_OPTIONS)
-            .fixed("x", FIXED_OPTIONS)
-            .fixed("y", FIXED_OPTIONS)
-            .fixed("z", FIXED_OPTIONS)
-            .fixed("yaw", FIXED_OPTIONS)
-            .fixed("pitch", FIXED_OPTIONS)
+            .fixed("x", FIXED_SHORT_OPTIONS)
+            .fixed("y", FIXED_SHORT_OPTIONS)
+            .fixed("z", FIXED_SHORT_OPTIONS)
+            .fixed("yaw", FIXED_SHORT_OPTIONS)
+            .fixed("pitch", FIXED_SHORT_OPTIONS)
             .build();
         this.size = assertParserSize(this.parser);
     }

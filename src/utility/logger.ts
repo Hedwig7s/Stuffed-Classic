@@ -1,4 +1,3 @@
-import type { ContextManager } from "contextmanager";
 import pino from "pino";
 import pinoCaller from "pino-caller";
 import PinoPretty from "pino-pretty";

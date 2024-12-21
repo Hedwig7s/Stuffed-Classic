@@ -1,9 +1,9 @@
 import type { TCPSocketListener, Socket } from "bun";
 import { ArrayBufferSink } from "bun";
-import type { BaseProtocol } from "networking/protocol/baseprotocol";
-import { PacketIds } from "networking/packet/basepacket";
+import type { BaseProtocol } from "networking/protocol/protocol";
+import { PacketIds } from "networking/packet/packet";
 import type { ContextManager } from "contextmanager";
-import type { Player } from "entities/player";
+import type { Player } from "player/player";
 import type pino from "pino";
 import { getSimpleLogger } from "utility/logger";
 

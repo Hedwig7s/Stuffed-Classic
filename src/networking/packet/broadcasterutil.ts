@@ -1,11 +1,13 @@
-import type Player from "entities/player";
+import type Player from "player/player";
 import type { Connection } from "networking/server";
 import type { BasePacketData } from "./packetdata";
 export const criterias = {
     sameWorld: (source: Player) => {
         return (target: Connection): boolean => {
             return new Boolean(
-                target.player && source && target.player?.world === source.world
+                target.player?.entity &&
+                    source.entity &&
+                    target.player?.entity?.world === source.entity?.world
             ).valueOf();
         };
     },

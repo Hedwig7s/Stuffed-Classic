@@ -11,10 +11,10 @@ import type { ContextManager } from "contextmanager";
 import type BaseWorldParser from "./parsers/base";
 import { ParserBuilder } from "utility/dataparser";
 import { concatUint8Arrays } from "uint8array-extras";
-import Player from "entities/player";
 import type pino from "pino";
 import { getSimpleLogger } from "utility/logger";
-import { PacketIds } from "networking/packet/basepacket";
+import { PacketIds } from "networking/packet/packet";
+import PlayerEntity from "entities/playerentity";
 
 export interface WorldOptions {
     name: string;
@@ -188,9 +188,11 @@ export class World {
         this.lastUpdate = Date.now();
         for (const entity of this.entities.values()) {
             // Perhaps replace with events at a later point
-            if (entity instanceof Player) {
-                const protocol = entity.connection?.protocol;
-                if (!protocol || !entity.connection) {
+            if (entity instanceof PlayerEntity) {
+                const playerEntity = entity as PlayerEntity;
+                const player = playerEntity.player;
+                const protocol = player.protocol;
+                if (!protocol || !player.connection) {
                     this.logger.error(
                         "No connection/protocol on registered player!"
                     );
@@ -203,7 +205,7 @@ export class World {
                     continue;
                 }
 
-                setBlockPacket.sender(entity.connection, {
+                setBlockPacket.sender(player.connection, {
                     x: position.x,
                     y: position.y,
                     z: position.z,

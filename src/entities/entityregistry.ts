@@ -38,8 +38,8 @@ export class EntityRegistry {
         this._entities.set(entityId, entity);
         entity.ids.set(this, entityId);
 
-        if (this.appendToList && entity.registries.indexOf(this) === -1) {
-            entity.registries.push(this);
+        if (this.appendToList && !entity.registries.has(this)) {
+            entity.registries.add(this);
         }
 
         return entityId;
@@ -64,6 +64,8 @@ export class EntityRegistry {
             throw new Error("Entity wasn't registered");
         }
         this._entities.delete(id);
+        entity.registries.delete(this);
+        entity.ids.delete(this);
     }
 
     has(id: string | Entity): boolean {

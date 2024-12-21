@@ -1,94 +1,58 @@
-import EntityPosition from "datatypes/entityposition";
 import type { ContextManager } from "contextmanager";
-import type { World } from "data/worlds/world";
-import type { EntityRegistry } from "entities/entityregistry";
+import type World from "data/worlds/world";
+import EntityPosition from "datatypes/entityposition";
+import { EntityRegistry } from "entities/entityregistry";
 import type pino from "pino";
+import type Player from "player/player";
 import { getSimpleLogger } from "utility/logger";
-import Vector3 from "datatypes/vector3";
 
 export interface EntityOptions {
-    position?: EntityPosition;
+    context?: ContextManager;
     name: string;
     fancyName: string;
-    context: ContextManager;
-    register?: boolean; // If false, the entity will not be registered automatically, default behavior is to register.
-    unregister?: boolean; // If set, the entity will be unregistered from the registries. Default behavior is to unregister
+    register?: boolean; // Whether to register in the default registry. Defaults to true
 }
 
-export class Entity {
-    protected _position: EntityPosition;
-    public get position(): EntityPosition {
-        return this._position;
-    }
-    public readonly ids = new Map<EntityRegistry, string>();
+export abstract class Entity {
+    public ids = new Map<EntityRegistry, string>();
     public name: string;
     public fancyName: string;
-    public readonly context: ContextManager;
-    public destroyed: boolean;
-    protected unregister: boolean;
-    public readonly registries: EntityRegistry[] = [];
+    public registries = new Set<EntityRegistry>();
+    public worldEntityId = -1;
     public world?: World;
-    public worldEntityId = -1; // Entity id within a world
-    public readonly logger: pino.Logger;
-    protected static finalizationRegistry = new FinalizationRegistry<Entity>(
-        this.cleanup
-    );
-    protected static cleanup(entity: Entity) {
-        if (!entity.destroyed) {
-            entity.destroy();
-        }
-    }
-    constructor({
-        name,
-        position,
-        context,
-        register,
-        unregister,
-        fancyName,
-    }: EntityOptions) {
-        this.logger = getSimpleLogger("Entity " + name);
+    public position = new EntityPosition(0, 0, 0, 0, 0);
+    public destroyed = false;
+    public context?: ContextManager;
+    public logger: pino.Logger;
+    constructor({ context, name, fancyName, register }: EntityOptions) {
         this.context = context;
+        this.name = name;
         this.fancyName = fancyName;
-        this.unregister = unregister ?? true;
-        if (register ?? true) {
+        this.logger = getSimpleLogger(`Entity ${this.name}`);
+        if (this.context && register && true) {
             this.context.entityRegistry.register(this);
         }
-        this._position = position ?? EntityPosition.zero;
-        this.name = name;
-        this.destroyed = false;
     }
-
-    move(position: EntityPosition) {
-        this._position = position;
-    }
-    loadWorld(world: World) {
-        const currentWorld = this.world;
-        if (currentWorld === world) {
-            return;
-        }
-        if (currentWorld) {
-            currentWorld.unregisterEntity(this);
-        }
+    public spawn(world: World): Promise<any> {
         this.world = world;
-        this.world.registerEntity(this);
-        this.spawn();
+        world.registerEntity(this);
+        this.move(world.spawn);
+        return Promise.resolve();
     }
-    spawn() {
-        if (!this.world || this.worldEntityId === -1) {
-            throw new Error("Entity has no world");
+    public despawn() {
+        this.world?.unregisterEntity(this);
+        this.world = undefined;
+    }
+    public destroy() {
+        this.despawn();
+        for (const registry of this.registries) {
+            registry.unregister(this);
         }
-        this._position = this.world.spawn;
-    }
-
-    destroy() {
         this.destroyed = true;
-        if (this.unregister) {
-            for (const registry of this.registries) {
-                registry.unregister(this);
-            }
-        }
-        Entity.finalizationRegistry.unregister(this);
     }
+    public move(position: EntityPosition) {
+        this.position = position;
+    }
+    public abstract spawnFor(player: Player): Promise<void>;
 }
-
 export default Entity;
