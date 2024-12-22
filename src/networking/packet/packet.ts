@@ -39,7 +39,7 @@ export abstract class Packet<T extends object> {
     constructor({ context }: BasePacketOptions) {
         this.context = context;
     }
-    async sender?(connection: Connection, data: Omit<T, "id">) {
+    async send?(connection: Connection, data: Omit<T, "id">) {
         const newData = {
             id: this.id,
             ...data,
@@ -47,14 +47,14 @@ export abstract class Packet<T extends object> {
         const parsed = this.parser.encode(newData as T);
         connection.write(parsed).catch(connection.onError.bind(connection));
     }
-    abstract receiver?(connection: Connection, data: Uint8Array): Promise<void>;
+    abstract receive?(connection: Connection, data: Uint8Array): Promise<void>;
 }
 
 export interface ReceivablePacket<T extends BasePacketData> extends Packet<T> {
-    receiver(connection: Connection, data: Uint8Array): Promise<void>;
+    receive(connection: Connection, data: Uint8Array): Promise<void>;
 }
 export interface SendablePacket<T extends BasePacketData> extends Packet<T> {
-    sender(connection: Connection, data: Omit<T, "id">): Promise<void>;
+    send(connection: Connection, data: Omit<T, "id">): Promise<void>;
 }
 
 export enum PacketIds {

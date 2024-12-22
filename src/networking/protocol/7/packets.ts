@@ -46,7 +46,7 @@ export class IdentificationPacket7 extends Packet<IdentificationPacketData> {
         this.size = assertParserSize(this.parser);
     }
 
-    async receiver(connection: Connection, data: Uint8Array) {
+    async receive(connection: Connection, data: Uint8Array) {
         const clientPacket = assertPacket(
             connection.protocol,
             PacketIds.Identification
@@ -59,10 +59,10 @@ export class IdentificationPacket7 extends Packet<IdentificationPacketData> {
             connection: connection,
         });
         connection.player = player;
-        if (clientPacket.sender == null) {
+        if (clientPacket.send == null) {
             throw new Error("Packet sender not found");
         }
-        clientPacket.sender(connection, {
+        clientPacket.send(connection, {
             protocol: PROTOCOL_VERSION,
             name: "Stuffed Classic", // TODO: Use the config
             keyOrMotd: "A stuffed classic server", // TODO: Use the config
@@ -92,7 +92,7 @@ export class PingPacket7 extends Packet<PingPacketData> {
         this.size = assertParserSize(this.parser);
     }
 
-    async receiver(connection: Connection, data: Uint8Array) {
+    async receive(connection: Connection, data: Uint8Array) {
         // Doesn't need to do anything
     }
 }
@@ -112,7 +112,7 @@ export class LevelInitializePacket7 extends Packet<LevelInitializePacketData> {
         this.size = assertParserSize(this.parser);
     }
 
-    receiver = undefined;
+    receive = undefined;
 }
 
 export class LevelDataChunkPacket7 extends Packet<LevelDataChunkPacketData> {
@@ -133,7 +133,7 @@ export class LevelDataChunkPacket7 extends Packet<LevelDataChunkPacketData> {
         this.size = assertParserSize(this.parser);
     }
 
-    receiver = undefined;
+    receive = undefined;
 }
 
 export class LevelFinalizePacket7 extends Packet<LevelFinalizePacketData> {
@@ -154,7 +154,7 @@ export class LevelFinalizePacket7 extends Packet<LevelFinalizePacketData> {
         this.size = assertParserSize(this.parser);
     }
 
-    receiver = undefined;
+    receive = undefined;
 }
 
 export class SetBlockClientPacket7 extends Packet<SetBlockClientPacketData> {
@@ -176,8 +176,8 @@ export class SetBlockClientPacket7 extends Packet<SetBlockClientPacketData> {
             .build();
         this.size = assertParserSize(this.parser);
     }
-    sender = undefined;
-    async receiver(connection: Connection, data: Uint8Array) {
+    send = undefined;
+    async receive(connection: Connection, data: Uint8Array) {
         const parsed = this.parser.parse(data);
         const player = connection.player;
         if (!player) return;
@@ -213,7 +213,7 @@ export class SetBlockServerPacket7 extends Packet<SetBlockServerPacketData> {
         this.size = assertParserSize(this.parser);
     }
 
-    receiver = undefined;
+    receive = undefined;
 }
 
 export class SpawnPlayerPacket7 extends Packet<SpawnPlayerPacketData> {
@@ -237,7 +237,7 @@ export class SpawnPlayerPacket7 extends Packet<SpawnPlayerPacketData> {
             .build();
         this.size = assertParserSize(this.parser);
     }
-    receiver = undefined;
+    receive = undefined;
 }
 
 export const PACKETS = {

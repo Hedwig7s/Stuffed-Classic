@@ -97,7 +97,7 @@ export class Connection {
             if (!packet) {
                 throw new Error(`Packet ${id} not found`);
             }
-            if (!packet.receiver) {
+            if (!packet.receive) {
                 throw new Error(`Packet ${id} has no receiver`);
             }
 
@@ -107,7 +107,7 @@ export class Connection {
                 return;
             }
 
-            await packet.receiver(this, data);
+            await packet.receive(this, data);
 
             if (data.byteLength > size) {
                 this.queueData(data.subarray(size));

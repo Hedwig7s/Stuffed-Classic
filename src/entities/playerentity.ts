@@ -27,7 +27,7 @@ export class PlayerEntity extends Entity {
             }
         }
         const packet = this.player.protocol?.packets[PacketIds.SpawnPlayer];
-        if (!packet || !packet.sender) {
+        if (!packet || !packet.send) {
             this.logger.warn(
                 "Could not find SpawnPlayer packet for player entity"
             );
@@ -35,7 +35,7 @@ export class PlayerEntity extends Entity {
         }
         const { x, y, z, yaw, pitch } = this.position;
         promises.push(
-            packet.sender(this.player.connection, {
+            packet.send(this.player.connection, {
                 entityId: -1,
                 name: this.fancyName,
                 x,
@@ -57,9 +57,9 @@ export class PlayerEntity extends Entity {
         const connection = player.connection;
         if (!connection) return Promise.resolve();
         const packet = player.protocol?.packets[PacketIds.SpawnPlayer];
-        if (!packet || !packet.sender) return Promise.resolve();
+        if (!packet || !packet.send) return Promise.resolve();
         const { x, y, z, yaw, pitch } = this.position;
-        return packet.sender(connection, {
+        return packet.send(connection, {
             entityId: this.worldEntityId,
             name: this.fancyName,
             x,

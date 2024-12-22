@@ -200,12 +200,12 @@ export class World {
                 }
                 const setBlockPacket =
                     protocol.packets[PacketIds.SetBlockServer];
-                if (!setBlockPacket || !setBlockPacket.sender) {
+                if (!setBlockPacket || !setBlockPacket.send) {
                     this.logger.error("No setBlockServer packet found!");
                     continue;
                 }
 
-                setBlockPacket.sender(player.connection, {
+                setBlockPacket.send(player.connection, {
                     x: position.x,
                     y: position.y,
                     z: position.z,

@@ -42,12 +42,12 @@ export class Broadcaster<T extends BasePacketData> {
                     this.packetId
                 ] as Packet<T>;
                 if (!packet) continue;
-                if (!packet.sender) continue;
+                if (!packet.send) continue;
                 const newData = this.modifier
                     ? this.modifier(data, connection)
                     : data;
                 promises.push(
-                    packet.sender(connection, newData).catch((error) => {
+                    packet.send(connection, newData).catch((error) => {
                         connection.logger.error(error);
                     })
                 );
