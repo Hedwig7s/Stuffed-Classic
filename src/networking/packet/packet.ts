@@ -44,7 +44,7 @@ export abstract class Packet<T extends object> {
             id: this.id,
             ...data,
         } as T;
-        const parsed = this.parser.encode(newData as T);
+        const parsed = this.parser.encode(newData);
         connection.write(parsed).catch(connection.onError.bind(connection));
     }
     abstract receive?(connection: Connection, data: Uint8Array): Promise<void>;

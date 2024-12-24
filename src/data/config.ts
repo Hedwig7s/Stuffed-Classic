@@ -89,7 +89,7 @@ function createProxy<T extends ConfigData>(
             ) {
                 const ret = Reflect.set(target, key, value, receiver);
                 if (instance && instance.autosave) {
-                    instance.save();
+                    instance.needsResave = true;
                 }
                 Reflect.set(
                     target,
@@ -129,6 +129,7 @@ export class Config<T extends ConfigData = ConfigData> {
     public readonly logger: pino.Logger;
     public readonly fileHandler: FileFormatHandler;
     public autosave: boolean;
+    public needsResave = false;
 
     constructor({
         defaultConfig,
@@ -175,6 +176,14 @@ export class Config<T extends ConfigData = ConfigData> {
                 this.logger.warn(`Invalid file format ${format}`);
             }
         }
+        const saveInterval = setInterval(() => {
+            if (this == null) {
+                clearInterval(saveInterval);
+                return;
+            }
+            if (!this.needsResave) return;
+            this.save();
+        },10000);
         this.fileHandler = fileHandler ?? handlers.json5;
     }
 
