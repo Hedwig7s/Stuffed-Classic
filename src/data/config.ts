@@ -183,7 +183,7 @@ export class Config<T extends ConfigData = ConfigData> {
             }
             if (!this.needsResave) return;
             this.save();
-        },10000);
+        }, 10000);
         this.fileHandler = fileHandler ?? handlers.json5;
     }
 

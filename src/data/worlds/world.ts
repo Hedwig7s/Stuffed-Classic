@@ -1,7 +1,6 @@
 import Vector3 from "datatypes/vector3";
 import EntityPosition from "datatypes/entityposition";
 import HWorldParser from "data/worlds/parsers/hworld";
-import { BlockIds, BLOCK_VERSION_REPLACEMENTS } from "data/blocks";
 import zlib from "zlib";
 import fs from "fs";
 import * as pathlib from "path";

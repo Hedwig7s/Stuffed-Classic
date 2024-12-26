@@ -123,8 +123,8 @@ class BinaryParser<T extends ParserData<T>> {
         this.size = size;
     }
 
-    parse(data: Uint8Array): T {
-        const parsed: Partial<T> = {};
+    decode(data: Uint8Array): T {
+        const decoded: Partial<T> = {};
         let offset = 0;
         this.endianness = nativeEndianness;
         for (const format of this.formatList) {
@@ -161,7 +161,7 @@ class BinaryParser<T extends ParserData<T>> {
                     ) {
                         result = Number(result);
                     }
-                    parsed[intFormat.key] = result as T[keyof T];
+                    decoded[intFormat.key] = result as T[keyof T];
                     break;
                 }
                 case "string": {
@@ -183,7 +183,7 @@ class BinaryParser<T extends ParserData<T>> {
                                 }
                                 const b = slice[size];
                                 if (b === 0) {
-                                    parsed[stringFormat.key] = decode(
+                                    decoded[stringFormat.key] = decode(
                                         slice.subarray(0, size)
                                     ) as T[keyof T];
                                     offset += size + 1;
@@ -209,7 +209,7 @@ class BinaryParser<T extends ParserData<T>> {
                                 offset,
                                 (offset += stringFormat.length)
                             );
-                            parsed[stringFormat.key] = decode(
+                            decoded[stringFormat.key] = decode(
                                 slice
                             ) as T[keyof T];
                             break;
@@ -226,7 +226,7 @@ class BinaryParser<T extends ParserData<T>> {
                     if (offset + 4 - 1 >= data.length) {
                         throw new Error("Float out of range");
                     }
-                    parsed[format.key] = new DataView(data.buffer).getFloat32(
+                    decoded[format.key] = new DataView(data.buffer).getFloat32(
                         offset,
                         this.endianness === "little"
                     ) as T[keyof T];
@@ -237,7 +237,7 @@ class BinaryParser<T extends ParserData<T>> {
                     if (offset + 8 - 1 >= data.length) {
                         throw new Error("Double out of range");
                     }
-                    parsed[format.key] = new DataView(data.buffer).getFloat64(
+                    decoded[format.key] = new DataView(data.buffer).getFloat64(
                         offset,
                         this.endianness === "little"
                     ) as T[keyof T];
@@ -266,7 +266,7 @@ class BinaryParser<T extends ParserData<T>> {
                     if (!Number.isFinite(result)) {
                         throw new Error("Resulting float is too large");
                     }
-                    parsed[fixedFormat.key] = result as T[keyof T];
+                    decoded[fixedFormat.key] = result as T[keyof T];
                     break;
                 }
                 case "raw": {
@@ -278,7 +278,7 @@ class BinaryParser<T extends ParserData<T>> {
                         offset,
                         (offset += rawFormat.size)
                     );
-                    parsed[rawFormat.key] = slice as T[keyof T];
+                    decoded[rawFormat.key] = slice as T[keyof T];
                     break;
                 }
                 default: {
@@ -287,14 +287,17 @@ class BinaryParser<T extends ParserData<T>> {
             }
         }
         for (const format of this.formatList) {
-            if (parsed[format.key] == null && !format.name.endsWith("endian")) {
+            if (
+                decoded[format.key] == null &&
+                !format.name.endsWith("endian")
+            ) {
                 throw new Error(
                     `Incomplete data: Key ${String(format.key)} not found`
                 );
             }
         }
 
-        return parsed as T;
+        return decoded as T;
     }
     validate(data: T): [boolean, string?] {
         for (const format of this.formatList) {
@@ -447,7 +450,7 @@ class BinaryParser<T extends ParserData<T>> {
                     const fixedValue = Math.floor(
                         value * (1 << fixedFormat.point)
                     );
-                    const [ minValue, maxValue ] = [
+                    const [minValue, maxValue] = [
                         -(1 << (fixedFormat.size * 8 - 1)),
                         (1 << (fixedFormat.size * 8 - 1)) - 1,
                     ];

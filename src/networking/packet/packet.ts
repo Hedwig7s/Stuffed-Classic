@@ -4,9 +4,8 @@ import type {
     FixedOptions,
     StringOptions,
 } from "utility/dataparser";
-import type BaseProtocol from "networking/protocol/protocol";
 import type { ContextManager } from "contextmanager";
-import type { BasePacketData } from "networking/packet/packetdata";
+import type { PacketData } from "networking/packet/packetdata";
 
 export const STRING_OPTIONS: StringOptions = {
     encoding: "ascii",
@@ -26,36 +25,28 @@ export const FIXED_BYTE_OPTIONS: FixedOptions = {
     signed: true,
 };
 
-export interface BasePacketOptions {
+export interface PacketOptions {
     context: ContextManager;
 }
 
-export abstract class Packet<T extends object> {
-    public abstract readonly name: string;
-    public abstract readonly id: number;
-    public abstract readonly parser: BinaryParser<any>;
-    public abstract readonly size: number;
-    public readonly context: ContextManager;
-    constructor({ context }: BasePacketOptions) {
-        this.context = context;
-    }
-    async send?(connection: Connection, data: Omit<T, "id">) {
-        const newData = {
-            id: this.id,
-            ...data,
-        } as T;
-        const parsed = this.parser.encode(newData);
-        connection.write(parsed).catch(connection.onError.bind(connection));
-    }
-    abstract receive?(connection: Connection, data: Uint8Array): Promise<void>;
+export interface Packet<T extends object> {
+    readonly name: string;
+    readonly id: number;
+    readonly parser: BinaryParser<T>;
+    readonly size: number;
+    send?(connection: Connection, data: Omit<T, "id">): Promise<void>;
+    receive?(connection: Connection, data: Uint8Array): Promise<void>;
 }
 
-export interface ReceivablePacket<T extends BasePacketData> extends Packet<T> {
+export interface ReceivablePacket<T extends PacketData> extends Packet<T> {
     receive(connection: Connection, data: Uint8Array): Promise<void>;
 }
-export interface SendablePacket<T extends BasePacketData> extends Packet<T> {
+export interface SendablePacket<T extends PacketData> extends Packet<T> {
     send(connection: Connection, data: Omit<T, "id">): Promise<void>;
 }
+
+export type BidirectionalPacket<T extends PacketData> = ReceivablePacket<T> &
+    SendablePacket<T>;
 
 export enum PacketIds {
     Identification = 0x00,
@@ -66,28 +57,4 @@ export enum PacketIds {
     SetBlockClient = 0x05,
     SetBlockServer = 0x06,
     SpawnPlayer = 0x07,
-}
-
-export function assertPacket<K extends keyof BaseProtocol["packets"]>(
-    protocol: BaseProtocol | undefined,
-    name: K
-) {
-    if (protocol == null) {
-        throw new Error("Protocol not assigned");
-    }
-    const packet = protocol.packets[name];
-    if (packet == null) {
-        throw new Error(`Packet ${name} not found`);
-    }
-    return packet;
-}
-
-export function assertParserSize(parser?: BinaryParser<any>): number {
-    if (!parser) {
-        throw new Error("No parser");
-    }
-    if (parser.size === undefined) {
-        throw new Error("No parser size");
-    }
-    return parser.size;
 }

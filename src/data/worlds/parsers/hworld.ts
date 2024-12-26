@@ -125,14 +125,14 @@ function getHeaderParser(
 
 export default class HWorldParser extends BaseWorldParser {
     async decode(data: Uint8Array) {
-        const VERSION = VERSION_PARSER.parse(
+        const VERSION = VERSION_PARSER.decode(
             data.subarray(0, VERSION_PARSER.size)
         ).version;
         const HEADER_PARSER = getHeaderParser(VERSION);
         if (HEADER_PARSER.size == undefined) {
             throw new Error("Invalid parser sizes!");
         }
-        const HEADER = HEADER_PARSER.parse(
+        const HEADER = HEADER_PARSER.decode(
             data.subarray(0, HEADER_PARSER.size)
         );
 
@@ -163,7 +163,7 @@ export default class HWorldParser extends BaseWorldParser {
         }
         let blockIndex = 0;
         for (let i = 0; i < compressedBlocks.byteLength; i += 5) {
-            const BLOCK = BLOCK_PARSER.parse(
+            const BLOCK = BLOCK_PARSER.decode(
                 compressedBlocks.subarray(i, i + 5)
             );
             for (let j = 0; j < BLOCK.count; j++) {

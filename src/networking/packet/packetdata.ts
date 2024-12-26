@@ -1,31 +1,31 @@
-export interface BasePacketData {
+export interface PacketData {
     id: number;
 }
 
-export interface IdentificationPacketData extends BasePacketData {
+export interface IdentificationPacketData extends PacketData {
     protocol: number;
     name: string;
     keyOrMotd: string;
     userType: number;
 }
 
-export type PingPacketData = BasePacketData;
+export type PingPacketData = PacketData;
 
-export type LevelInitializePacketData = BasePacketData;
+export type LevelInitializePacketData = PacketData;
 
-export interface LevelDataChunkPacketData extends BasePacketData {
+export interface LevelDataChunkPacketData extends PacketData {
     chunkLength: number;
     chunkData: Uint8Array;
     percentComplete: number;
 }
 
-export interface LevelFinalizePacketData extends BasePacketData {
+export interface LevelFinalizePacketData extends PacketData {
     worldSizeX: number;
     worldSizeY: number;
     worldSizeZ: number;
 }
 
-export interface SetBlockClientPacketData extends BasePacketData {
+export interface SetBlockClientPacketData extends PacketData {
     x: number;
     y: number;
     z: number;
@@ -33,14 +33,14 @@ export interface SetBlockClientPacketData extends BasePacketData {
     blockType: number;
 }
 
-export interface SetBlockServerPacketData extends BasePacketData {
+export interface SetBlockServerPacketData extends PacketData {
     x: number;
     y: number;
     z: number;
     blockType: number;
 }
 
-export interface SpawnPlayerPacketData extends BasePacketData {
+export interface SpawnPlayerPacketData extends PacketData {
     entityId: number;
     name: string;
     x: number;

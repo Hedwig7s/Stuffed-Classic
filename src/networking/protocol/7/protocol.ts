@@ -1,10 +1,5 @@
-import { BaseProtocol, parsePackets } from "networking/protocol/protocol";
+import { BaseProtocol } from "networking/protocol/protocol";
 import { PACKETS } from "./packets";
-import {
-    Packet,
-    PacketIds,
-    type BasePacketOptions,
-} from "networking/packet/packet";
 import type { ContextManager } from "contextmanager";
 
 export class Protocol7 extends BaseProtocol {
@@ -15,12 +10,6 @@ export class Protocol7 extends BaseProtocol {
     }
     constructor(context: ContextManager) {
         super(context);
-        this.packets = parsePackets(
-            PACKETS as Record<
-                PacketIds,
-                new (options: BasePacketOptions) => Packet<any>
-            >,
-            context
-        );
+        this.packets = PACKETS;
     }
 }

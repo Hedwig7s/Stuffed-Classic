@@ -1,6 +1,6 @@
 import type { Packet, PacketIds } from "networking/packet/packet";
 import type { Connection } from "networking/server";
-import type { BasePacketData } from "./packetdata";
+import type { PacketData } from "./packetdata";
 import type { ContextManager } from "contextmanager";
 
 export interface BroadcastOptions<T> {
@@ -10,7 +10,7 @@ export interface BroadcastOptions<T> {
     criteria?: (target: Connection) => boolean;
 }
 
-export class Broadcaster<T extends BasePacketData> {
+export class Broadcaster<T extends PacketData> {
     public readonly packetId: PacketIds;
     public readonly modifier?: (
         data: Omit<T, "id">,

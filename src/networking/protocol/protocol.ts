@@ -1,8 +1,9 @@
 import type { ContextManager } from "contextmanager";
 import {
-    type Packet,
-    type BasePacketOptions,
     PacketIds,
+    type BidirectionalPacket,
+    type SendablePacket,
+    type ReceivablePacket,
 } from "networking/packet/packet";
 import type {
     IdentificationPacketData,
@@ -15,29 +16,17 @@ import type {
     SpawnPlayerPacketData,
 } from "../packet/packetdata";
 
-export function parsePackets(
-    packets: Record<PacketIds, new (options: BasePacketOptions) => Packet<any>>,
-    context: ContextManager
-) {
-    return Object.fromEntries(
-        Object.entries(packets).map(([id, packet]) => [
-            id,
-            new packet({ context }),
-        ])
-    ) as Record<PacketIds, Packet<any>>;
-}
-
 export abstract class BaseProtocol {
     public abstract readonly version: number;
     public abstract packets: Partial<{
-        [PacketIds.Identification]: Packet<IdentificationPacketData>;
-        [PacketIds.Ping]: Packet<PingPacketData>;
-        [PacketIds.LevelInitialize]: Packet<LevelInitializePacketData>;
-        [PacketIds.LevelDataChunk]: Packet<LevelDataChunkPacketData>;
-        [PacketIds.LevelFinalize]: Packet<LevelFinalizePacketData>;
-        [PacketIds.SetBlockClient]: Packet<SetBlockClientPacketData>;
-        [PacketIds.SetBlockServer]: Packet<SetBlockServerPacketData>;
-        [PacketIds.SpawnPlayer]: Packet<SpawnPlayerPacketData>;
+        [PacketIds.Identification]: BidirectionalPacket<IdentificationPacketData>;
+        [PacketIds.Ping]: BidirectionalPacket<PingPacketData>;
+        [PacketIds.LevelInitialize]: SendablePacket<LevelInitializePacketData>;
+        [PacketIds.LevelDataChunk]: SendablePacket<LevelDataChunkPacketData>;
+        [PacketIds.LevelFinalize]: SendablePacket<LevelFinalizePacketData>;
+        [PacketIds.SetBlockClient]: ReceivablePacket<SetBlockClientPacketData>;
+        [PacketIds.SetBlockServer]: SendablePacket<SetBlockServerPacketData>;
+        [PacketIds.SpawnPlayer]: SendablePacket<SpawnPlayerPacketData>;
     }>;
     constructor(public readonly context: ContextManager) {}
     public abstract checkIdentifier(identifier: Uint8Array): boolean;

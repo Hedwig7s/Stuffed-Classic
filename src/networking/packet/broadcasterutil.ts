@@ -1,6 +1,6 @@
 import type Player from "player/player";
 import type { Connection } from "networking/server";
-import type { BasePacketData } from "./packetdata";
+import type { PacketData } from "./packetdata";
 export const criterias = {
     sameWorld: (source: Player) => {
         return (target: Connection): boolean => {
@@ -42,7 +42,7 @@ export const modifiers = {
     },
 };
 
-export function combineModifiers<T extends BasePacketData>(
+export function combineModifiers<T extends PacketData>(
     ...modifiers: ((data: T, target: Connection) => T)[]
 ): (data: T, target: Connection) => T {
     return (data: T, target: Connection) => {
