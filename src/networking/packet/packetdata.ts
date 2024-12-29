@@ -1,3 +1,5 @@
+import type { PacketIds } from "networking/packet/packet";
+
 export interface PacketData {
     id: number;
 }
@@ -48,4 +50,71 @@ export interface SpawnPlayerPacketData extends PacketData {
     z: number;
     yaw: number;
     pitch: number;
+}
+
+export interface PositionAndOrientationPacketData extends PacketData {
+    entityId: number;
+    x: number;
+    y: number;
+    z: number;
+    yaw: number;
+    pitch: number;
+}
+
+export interface PositionAndOrientationUpdatePacketData extends PacketData {
+    entityId: number;
+    x: number;
+    y: number;
+    z: number;
+    yaw: number;
+    pitch: number;
+}
+
+export interface PositionUpdatePacketData extends PacketData {
+    entityId: number;
+    x: number;
+    y: number;
+    z: number;
+}
+
+export interface OrientationUpdatePacketData extends PacketData {
+    entityId: number;
+    yaw: number;
+    pitch: number;
+}
+
+export interface DespawnPlayerPacketData extends PacketData {
+    entityId: number;
+}
+
+export interface ChatMessagePacketData extends PacketData {
+    entityId: number;
+    message: string;
+}
+
+export interface DisconnectPlayerPacketData extends PacketData {
+    reason: string;
+}
+
+export interface UpdateUserTypePacketData extends PacketData {
+    userType: number;
+}
+
+export interface IdToPacketDataMap {
+    [PacketIds.Identification]: IdentificationPacketData;
+    [PacketIds.Ping]: PingPacketData;
+    [PacketIds.LevelInitialize]: LevelInitializePacketData;
+    [PacketIds.LevelDataChunk]: LevelDataChunkPacketData;
+    [PacketIds.LevelFinalize]: LevelFinalizePacketData;
+    [PacketIds.SetBlockClient]: SetBlockClientPacketData;
+    [PacketIds.SetBlockServer]: SetBlockServerPacketData;
+    [PacketIds.SpawnPlayer]: SpawnPlayerPacketData;
+    [PacketIds.PositionAndOrientation]: PositionAndOrientationPacketData;
+    [PacketIds.PositionAndOrientationUpdate]: PositionAndOrientationUpdatePacketData;
+    [PacketIds.PositionUpdate]: PositionUpdatePacketData;
+    [PacketIds.OrientationUpdate]: OrientationUpdatePacketData;
+    [PacketIds.DespawnPlayer]: DespawnPlayerPacketData;
+    [PacketIds.ChatMessage]: ChatMessagePacketData;
+    [PacketIds.DisconnectPlayer]: DisconnectPlayerPacketData;
+    [PacketIds.UpdateUserType]: UpdateUserTypePacketData;
 }

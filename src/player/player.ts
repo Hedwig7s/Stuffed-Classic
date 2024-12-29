@@ -1,5 +1,6 @@
-import type { ContextManager } from "contextmanager";
 import PlayerEntity from "entities/playerentity";
+import { PacketIds } from "networking/packet/packet";
+import { assertPacket } from "networking/packet/utilities";
 import type { Connection } from "networking/server";
 import type pino from "pino";
 import { getSimpleLogger } from "utility/logger";
@@ -9,7 +10,6 @@ export interface PlayerOptions {
     name: string;
     fancyName?: string;
     hasEntity?: boolean;
-    context?: ContextManager;
 }
 
 export class Player {
@@ -17,14 +17,56 @@ export class Player {
     public readonly name: string;
     public fancyName: string;
     public entity?: PlayerEntity;
-    public context?: ContextManager;
     public logger: pino.Logger;
     public get protocol() {
         return this.connection?.protocol;
     }
+    public async loadWorld() {
+        if (!this.connection || !this.connection.protocol) return;
+        if (!this.entity?.world) {
+            this.logger.warn("Player is not in a world");
+            return;
+        }
+        const protocol = this.connection.protocol;
+        const world = this.entity.world;
+        const levelInitializePacket = assertPacket(
+            protocol,
+            PacketIds.LevelInitialize
+        );
+        const levelDataPacket = assertPacket(
+            protocol,
+            PacketIds.LevelDataChunk
+        );
+        const levelFinalizePacket = assertPacket(
+            protocol,
+            PacketIds.LevelFinalize
+        );
+
+        await levelInitializePacket
+            .send(this.connection, {})
+            .catch(this.connection.onError.bind(this.connection));
+
+        await world.pack(protocol.version, (data, size, percent) => {
+            levelDataPacket
+            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                .send(this.connection!, {
+                    chunkData: data,
+                    chunkLength: size,
+                    percentComplete: percent,
+                })
+                .catch(this.connection?.onError.bind(this.connection));
+        });
+
+        await levelFinalizePacket
+            .send(this.connection, {
+                worldSizeX: world.size.x,
+                worldSizeY: world.size.y,
+                worldSizeZ: world.size.z,
+            })
+            .catch(this.connection.onError.bind(this.connection));
+    }
     constructor(options: PlayerOptions) {
         this.connection = options.connection;
-        this.context = options.context;
         this.name = options.name;
         this.fancyName = options.fancyName || this.name;
         if (options.hasEntity ?? true) {
@@ -32,7 +74,6 @@ export class Player {
                 player: this,
                 name: this.name,
                 fancyName: this.fancyName,
-                context: this.context,
             });
         }
         this.logger = getSimpleLogger(`Player ${this.name}`);

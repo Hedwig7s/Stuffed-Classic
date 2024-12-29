@@ -2,9 +2,6 @@
 
 - `../main.ts` - Initializes the server, main entrypoint
 
-- `contextmanager.ts`
-  - `ContextManager` class: Contains all shared state in the program
-
 ## data/
 
 Files related to in memory data storage and file storage

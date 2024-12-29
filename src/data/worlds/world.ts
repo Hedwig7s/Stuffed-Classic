@@ -6,27 +6,28 @@ import fs from "fs";
 import * as pathlib from "path";
 import type { Entity } from "entities/entity";
 import type WorldManager from "./worldmanager";
-import type { ContextManager } from "contextmanager";
-import type BaseWorldParser from "./parsers/base";
+import type WorldParser from "./parsers/base";
 import { ParserBuilder } from "utility/dataparser";
 import { concatUint8Arrays } from "uint8array-extras";
 import type pino from "pino";
 import { getSimpleLogger } from "utility/logger";
 import { PacketIds } from "networking/packet/packet";
 import PlayerEntity from "entities/playerentity";
+import type { DEFAULT_CONFIGS } from "data/constants";
+import type { Config } from "data/config";
 
 export interface WorldOptions {
     name: string;
     blocks?: Uint8Array;
     size: Vector3;
     spawn: EntityPosition;
-    context: ContextManager;
+    serverConfig?: Config<typeof DEFAULT_CONFIGS.server>;
 }
 
 export interface WorldFromFileOptions {
     filePath: string;
-    parserClass?: new () => BaseWorldParser;
-    context: ContextManager;
+    serverConfig?: Config<typeof DEFAULT_CONFIGS.server>;
+    parserClass?: new () => WorldParser;
 }
 
 export function getBlockIndex(position: Vector3, size: Vector3): number {
@@ -44,16 +45,16 @@ export class World {
     public get blocks(): Uint8Array {
         return new Uint8Array(this._blocks);
     }
-    name: string;
-    size: Vector3;
-    spawn: EntityPosition;
-    lastUpdate: number;
-    entities = new Map<number, Entity>();
-    manager?: WorldManager;
-    public readonly context: ContextManager;
+    public readonly name: string;
+    public size: Vector3;
+    public spawn: EntityPosition;
+    public lastUpdate: number;
+    public manager?: WorldManager;
+    public readonly entities = new Map<number, Entity>();
     public readonly logger: pino.Logger;
+    public readonly serverConfig?: Config<typeof DEFAULT_CONFIGS.server>;
 
-    constructor({ name, size, spawn, blocks, context }: WorldOptions) {
+    constructor({ name, size, spawn, blocks, serverConfig: config }: WorldOptions) {
         this.logger = getSimpleLogger("World " + name);
         this.name = name;
         this.size = size;
@@ -63,28 +64,57 @@ export class World {
         }
         this.spawn = spawn;
         this.lastUpdate = Date.now();
-        this.context = context;
+        this.serverConfig = config;
     }
 
     static async fromFile({
         filePath,
         parserClass,
-        context,
+        serverConfig: config,
     }: WorldFromFileOptions): Promise<World> {
         if (!(await fs.promises.exists(filePath))) {
             throw new Error("File not found.");
         }
         // eslint-disable-next-line @typescript-eslint/naming-convention
-        const Parser = parserClass ?? HWorldParser;
+        const WorldParser = parserClass ?? HWorldParser;
         const data = new Uint8Array(await fs.promises.readFile(filePath));
-        const parser = new Parser();
-        const options = (await parser.decode(data)) as WorldOptions;
-        options.context = context;
+        const worldParser = new WorldParser();
+        const options = (await worldParser.decode(data)) as WorldOptions;
         options.name =
             options.name !== ""
                 ? options.name
                 : pathlib.basename(filePath, pathlib.extname(filePath));
+        options.serverConfig = config;
         return new World(options);
+    }
+    // TODO: Replace with generators
+    static async basicWorld({ name,size,spawn,serverConfig }: Omit<WorldOptions & Partial<Pick<WorldOptions,"spawn">>,"blocks">): Promise<World> {
+        spawn = spawn ?? new EntityPosition(size.x/2, (size.y/2)+1, size.z/2, 0, 0);
+        const world = new World({
+            name,
+            size,
+            spawn,
+            serverConfig
+        });
+        for (let x = 0; x < size.x; x++) {
+            for (let y = 0; y <= size.y; y++) {
+                for (let z = 0; z < size.z; z++) {
+                    world.setBlock(
+                        new Vector3(x, y, z),
+                        y <= Math.floor(size.y/2) ? 1 : 0
+                    );
+                }
+            }
+        }
+        return world;
+    }
+
+    static async fromFileWithDefault(fileOptions:WorldFromFileOptions,fallbackOptions: Omit<WorldOptions & Partial<Pick<WorldOptions,"spawn">>,"blocks">): Promise<World> {
+        try {
+            return await World.fromFile(fileOptions);
+        } catch {
+            return await World.basicWorld(fallbackOptions);
+        }
     }
 
     async pack(
@@ -222,7 +252,7 @@ export class World {
         const PARSER = new HWorldParser();
         const ENCODED = await PARSER.encode(this);
         const saveDirectory =
-            saveDir ?? this.context?.config.main.config.worlds.worldDir;
+            saveDir ?? this.serverConfig?.config.worlds.worldDir;
         if (saveDirectory == null) {
             throw new Error("World save directory not set");
         }

@@ -1,5 +1,9 @@
 export const CONFIG_PATH = "./config";
 
 export const DEFAULT_CONFIGS = {
-    main: (await import("data/configs/main")).default,
+    server: (await import("data/configs/server")).default,
+};
+
+export const PROTOCOLS = {
+    [0x07]: (await import("networking/protocol/7/protocol")).default,
 };

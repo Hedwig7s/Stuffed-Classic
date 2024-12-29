@@ -4,7 +4,6 @@ import type {
     FixedOptions,
     StringOptions,
 } from "utility/dataparser";
-import type { ContextManager } from "contextmanager";
 import type { PacketData } from "networking/packet/packetdata";
 
 export const STRING_OPTIONS: StringOptions = {
@@ -24,10 +23,6 @@ export const FIXED_BYTE_OPTIONS: FixedOptions = {
     point: 5,
     signed: true,
 };
-
-export interface PacketOptions {
-    context: ContextManager;
-}
 
 export interface Packet<T extends object> {
     readonly name: string;
@@ -57,4 +52,12 @@ export enum PacketIds {
     SetBlockClient = 0x05,
     SetBlockServer = 0x06,
     SpawnPlayer = 0x07,
+    // PositionAndOrientation = 0x08,
+    // PositionAndOrientationUpdate = 0x09,
+    // PositionUpdate = 0x0a,
+    // OrientationUpdate = 0x0b,
+    // DespawnPlayer = 0x0c,
+    // ChatMessage = 0x0d,
+    // DisconnectPlayer = 0x0e,
+    // UpdateUserType = 0x0f,
 }

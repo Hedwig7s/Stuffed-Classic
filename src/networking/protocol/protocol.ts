@@ -1,4 +1,3 @@
-import type { ContextManager } from "contextmanager";
 import {
     PacketIds,
     type BidirectionalPacket,
@@ -16,9 +15,9 @@ import type {
     SpawnPlayerPacketData,
 } from "../packet/packetdata";
 
-export abstract class BaseProtocol {
-    public abstract readonly version: number;
-    public abstract packets: Partial<{
+export interface Protocol {
+    readonly version: number;
+    readonly packets: {
         [PacketIds.Identification]: BidirectionalPacket<IdentificationPacketData>;
         [PacketIds.Ping]: BidirectionalPacket<PingPacketData>;
         [PacketIds.LevelInitialize]: SendablePacket<LevelInitializePacketData>;
@@ -27,8 +26,7 @@ export abstract class BaseProtocol {
         [PacketIds.SetBlockClient]: ReceivablePacket<SetBlockClientPacketData>;
         [PacketIds.SetBlockServer]: SendablePacket<SetBlockServerPacketData>;
         [PacketIds.SpawnPlayer]: SendablePacket<SpawnPlayerPacketData>;
-    }>;
-    constructor(public readonly context: ContextManager) {}
-    public abstract checkIdentifier(identifier: Uint8Array): boolean;
+    };
+    
+    checkIdentifier(identifier: Uint8Array): boolean;
 }
-export default BaseProtocol;

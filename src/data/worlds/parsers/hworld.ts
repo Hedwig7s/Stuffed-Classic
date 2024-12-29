@@ -17,13 +17,13 @@
         1 byte uint: block id
         4 byte uint: number of occurences in XZY order (y is up) (same order as minecraft classic) 
 */
-import BaseWorldParser from "data/worlds/parsers/base";
+import type WorldParser from "data/worlds/parsers/base";
 import Vector3 from "datatypes/vector3";
 import EntityPosition from "datatypes/entityposition";
-import { ParserBuilder, type BinaryParserType } from "utility/dataparser";
+import { ParserBuilder } from "utility/dataparser";
 import zlib from "zlib";
 
-import type { WorldOptions, World } from "data/worlds/world";
+import type { World } from "data/worlds/world";
 import { concatUint8Arrays } from "uint8array-extras";
 
 interface V2Header {
@@ -123,7 +123,7 @@ function getHeaderParser(
     }
 }
 
-export default class HWorldParser extends BaseWorldParser {
+export default class HWorldParser implements WorldParser {
     async decode(data: Uint8Array) {
         const VERSION = VERSION_PARSER.decode(
             data.subarray(0, VERSION_PARSER.size)

@@ -4,9 +4,15 @@ import PinoPretty from "pino-pretty";
 import * as pathLib from "path";
 
 export function getSimpleLogger(name?: string) {
-    const debug = process.env.DEBUG === "1";
-
-    const level = debug ? "trace" : "info";
+    const level = process.env.LOG_LEVEL?.toLowerCase() || "info";
+    const debug =
+        process.env.DEBUG !== undefined &&
+        process.env.DEBUG.toLowerCase() !== "false" &&
+        process.env.DEBUG !== "0" &&
+        process.env.DEBUG !== "";
+    if (!(level in pino.levels.values)) {
+        throw new Error(`Invalid log level: ${level}`);
+    }
     const pinoLogger = pino(
         {
             name,

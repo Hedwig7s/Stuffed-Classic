@@ -1,9 +1,9 @@
-import type BaseProtocol from "networking/protocol/protocol";
+import type Protocol from "networking/protocol/protocol";
 import type { BinaryParserType as BinaryParser } from "utility/dataparser";
 
 type PacketTypes = "Sendable" | "Receivable" | "Bidirectional" | "None";
-export function assertPacket<K extends keyof BaseProtocol["packets"]>(
-    protocol: BaseProtocol | undefined,
+export function assertPacket<K extends keyof Protocol["packets"]>(
+    protocol: Protocol | undefined,
     name: K,
     type: PacketTypes = "None"
 ) {

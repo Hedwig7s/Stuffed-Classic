@@ -1,13 +1,12 @@
 import type { Packet, PacketIds } from "networking/packet/packet";
-import type { Connection } from "networking/server";
+import type { Connection, Server } from "networking/server";
 import type { PacketData } from "./packetdata";
-import type { ContextManager } from "contextmanager";
 
 export interface BroadcastOptions<T> {
     packetId: PacketIds;
-    context: ContextManager;
     modifier?: (data: Omit<T, "id">, target: Connection) => Omit<T, "id">;
     criteria?: (target: Connection) => boolean;
+    server: Server;
 }
 
 export class Broadcaster<T extends PacketData> {
@@ -17,30 +16,30 @@ export class Broadcaster<T extends PacketData> {
         target: Connection
     ) => Omit<T, "id">;
     public readonly criteria?: (target: Connection) => boolean;
-    public readonly context: ContextManager;
+    public readonly server: Server;
 
     constructor({
         packetId,
         modifier,
         criteria,
-        context,
+        server
     }: BroadcastOptions<T>) {
         this.packetId = packetId;
         this.modifier = modifier;
         this.criteria = criteria;
-        this.context = context;
+        this.server = server;
     }
 
     public broadcast(data: Omit<T, "id">) {
         const promises: Promise<void>[] = [];
-        for (const ref of this.context.server.connections.values()) {
+        for (const ref of this.server.connections.values()) {
             const connection = ref.deref();
             if (!connection) continue;
             try {
                 if (this.criteria && !this.criteria(connection)) continue;
                 const packet = connection.protocol?.packets[
                     this.packetId
-                ] as Packet<T>;
+                ] as Packet<T>|undefined;
                 if (!packet) continue;
                 if (!packet.send) continue;
                 const newData = this.modifier

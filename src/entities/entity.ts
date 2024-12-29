@@ -1,4 +1,3 @@
-import type { ContextManager } from "contextmanager";
 import type World from "data/worlds/world";
 import EntityPosition from "datatypes/entityposition";
 import { EntityRegistry } from "entities/entityregistry";
@@ -7,30 +6,27 @@ import type Player from "player/player";
 import { getSimpleLogger } from "utility/logger";
 
 export interface EntityOptions {
-    context?: ContextManager;
     name: string;
     fancyName: string;
-    register?: boolean; // Whether to register in the default registry. Defaults to true
+    registry?: EntityRegistry; // The registry to automatically register in, if any 
 }
 
 export abstract class Entity {
-    public ids = new Map<EntityRegistry, string>();
+    public readonly ids = new Map<EntityRegistry, string>();
+    public readonly registries = new Set<EntityRegistry>();
     public name: string;
     public fancyName: string;
-    public registries = new Set<EntityRegistry>();
     public worldEntityId = -1;
     public world?: World;
     public position = new EntityPosition(0, 0, 0, 0, 0);
     public destroyed = false;
-    public context?: ContextManager;
-    public logger: pino.Logger;
-    constructor({ context, name, fancyName, register }: EntityOptions) {
-        this.context = context;
+    public readonly logger: pino.Logger;
+    constructor({ name, fancyName, registry: registry }: EntityOptions) {
         this.name = name;
         this.fancyName = fancyName;
         this.logger = getSimpleLogger(`Entity ${this.name}`);
-        if (this.context && register && true) {
-            this.context.entityRegistry.register(this);
+        if (registry) {
+            registry.register(this);
         }
     }
     public spawn(world: World): Promise<any> {

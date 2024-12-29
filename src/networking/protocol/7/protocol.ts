@@ -1,15 +1,11 @@
-import { BaseProtocol } from "networking/protocol/protocol";
+import type { Protocol } from "networking/protocol/protocol";
 import { PACKETS } from "./packets";
-import type { ContextManager } from "contextmanager";
 
-export class Protocol7 extends BaseProtocol {
-    public readonly version = 7;
-    public readonly packets;
-    public checkIdentifier(identifier: Uint8Array): boolean {
-        return identifier[1] === this.version;
-    }
-    constructor(context: ContextManager) {
-        super(context);
-        this.packets = PACKETS;
-    }
-}
+export const protocol7: Protocol = {
+    version: 7,
+    packets: PACKETS,
+    checkIdentifier(identifier: Uint8Array): boolean {
+        return identifier[0] === this.version;
+    },
+};
+export default protocol7;

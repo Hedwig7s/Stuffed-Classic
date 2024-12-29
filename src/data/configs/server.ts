@@ -1,4 +1,4 @@
-export default {
+export const serverConfig = {
     server: {
         host: "0.0.0.0",
         port: 25565,
@@ -11,3 +11,5 @@ export default {
         defaultWorld: "world",
     },
 };
+
+export default serverConfig;

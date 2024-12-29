@@ -1,8 +1,7 @@
 import type { TCPSocketListener, Socket } from "bun";
 import { ArrayBufferSink } from "bun";
-import type { BaseProtocol } from "networking/protocol/protocol";
+import type { Protocol } from "networking/protocol/protocol";
 import { PacketIds } from "networking/packet/packet";
-import type { ContextManager } from "contextmanager";
 import type { Player } from "player/player";
 import type pino from "pino";
 import { getSimpleLogger } from "utility/logger";
@@ -23,7 +22,7 @@ export interface SocketData {
 
 export class Connection {
     public closed = false;
-    public protocol?: BaseProtocol;
+    public protocol?: Protocol;
     public player?: Player;
     public readonly dataQueue: Uint8Array[] = [];
     public processingIncoming = false;
@@ -31,8 +30,8 @@ export class Connection {
 
     constructor(
         public readonly socket: Socket<SocketData>,
-        public readonly context: ContextManager,
-        public readonly id: number
+        public readonly id: number,
+        public readonly protocols: Record<number, Protocol>,
     ) {
         this.logger = getSimpleLogger(`Connection ${id}`);
         setTimeout(() => {
@@ -81,7 +80,7 @@ export class Connection {
         try {
             const id = data[0];
             if (id === 0x00 && !this.protocol) {
-                for (const protocol of Object.values(this.context.protocols)) {
+                for (const protocol of Object.values(this.protocols)) {
                     if (protocol.checkIdentifier(data)) {
                         this.protocol = protocol;
                         break;
@@ -145,7 +144,7 @@ export class Server {
     public get connections() {
         return Object.freeze(new Map(this._connections));
     }
-    constructor(public readonly context: ContextManager) {
+    constructor(public readonly protocols: Record<number, Protocol>) {
         this.logger = getSimpleLogger("Server");
     }
     cleanConnections() {
@@ -196,8 +195,8 @@ export class Server {
                         socket.data = {
                             connection: new Connection(
                                 socket,
-                                this.context,
-                                id
+                                id,
+                                this.protocols,
                             ),
                             faucet: new ArrayBufferSink(),
                             sink: new ArrayBufferSink(),

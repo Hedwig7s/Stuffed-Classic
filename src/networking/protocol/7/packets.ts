@@ -14,16 +14,18 @@ import type { Connection } from "networking/server";
 import Player from "player/player";
 import Vector3 from "datatypes/vector3";
 import { BlockIds } from "data/blocks";
-import type {
-    IdentificationPacketData,
-    LevelDataChunkPacketData,
-    LevelFinalizePacketData,
-    LevelInitializePacketData,
-    PingPacketData,
-    SetBlockClientPacketData,
-    SetBlockServerPacketData,
-    SpawnPlayerPacketData,
+import {
+    type PositionAndOrientationPacketData,
+    type IdentificationPacketData,
+    type LevelDataChunkPacketData,
+    type LevelFinalizePacketData,
+    type LevelInitializePacketData,
+    type PingPacketData,
+    type SetBlockClientPacketData,
+    type SetBlockServerPacketData,
+    type SpawnPlayerPacketData,
 } from "networking/packet/packetdata";
+import EntityPosition from "datatypes/entityposition";
 
 const PROTOCOL_VERSION = 7;
 
@@ -178,6 +180,28 @@ export const spawnPlayerPacket7 = createSendablePacket<SpawnPlayerPacketData>({
         .build(),
 });
 
+export const positionAndOrientationPacket7 = createBidirectionalPacket({
+    name: "PositionAndOrientation",
+    id: 0x08,
+    parser: new ParserBuilder<PositionAndOrientationPacketData>()
+        .bigEndian()
+        .uint8("id")
+        .int8("entityId")
+        .fixed("x", FIXED_SHORT_OPTIONS)
+        .fixed("y", FIXED_SHORT_OPTIONS)
+        .fixed("z", FIXED_SHORT_OPTIONS)
+        .fixed("yaw", FIXED_SHORT_OPTIONS)
+        .fixed("pitch", FIXED_SHORT_OPTIONS)
+        .build(),
+    async receive(connection: Connection, data: Uint8Array) {
+        const decoded = this.parser.decode(data);
+        const player = connection.player;
+        if (!player) return;
+        const { x, y, z, yaw, pitch } = decoded;
+        const position = new EntityPosition(x, y, z, yaw, pitch);
+        player.entity?.move(position);
+    },
+});
 export const PACKETS = {
     [PacketIds.Identification]: identificationPacket7,
     [PacketIds.Ping]: pingPacket7,
@@ -187,4 +211,5 @@ export const PACKETS = {
     [PacketIds.SetBlockClient]: setBlockClientPacket7,
     [PacketIds.SetBlockServer]: setBlockServerPacket7,
     [PacketIds.SpawnPlayer]: spawnPlayerPacket7,
+    [PacketIds.PositionAndOrientation]: positionAndOrientationPacket7,
 };
