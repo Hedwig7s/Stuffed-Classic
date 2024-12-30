@@ -54,7 +54,13 @@ export class World {
     public readonly logger: pino.Logger;
     public readonly serverConfig?: Config<typeof DEFAULT_CONFIGS.server>;
 
-    constructor({ name, size, spawn, blocks, serverConfig: config }: WorldOptions) {
+    constructor({
+        name,
+        size,
+        spawn,
+        blocks,
+        serverConfig: config,
+    }: WorldOptions) {
         this.logger = getSimpleLogger("World " + name);
         this.name = name;
         this.size = size;
@@ -88,20 +94,30 @@ export class World {
         return new World(options);
     }
     // TODO: Replace with generators
-    static async basicWorld({ name,size,spawn,serverConfig }: Omit<WorldOptions & Partial<Pick<WorldOptions,"spawn">>,"blocks">): Promise<World> {
-        spawn = spawn ?? new EntityPosition(size.x/2, (size.y/2)+1, size.z/2, 0, 0);
+    static async basicWorld({
+        name,
+        size,
+        spawn,
+        serverConfig,
+    }: Omit<
+        WorldOptions & Partial<Pick<WorldOptions, "spawn">>,
+        "blocks"
+    >): Promise<World> {
+        spawn =
+            spawn ??
+            new EntityPosition(size.x / 2, size.y / 2 + 1, size.z / 2, 0, 0);
         const world = new World({
             name,
             size,
             spawn,
-            serverConfig
+            serverConfig,
         });
         for (let x = 0; x < size.x; x++) {
             for (let y = 0; y <= size.y; y++) {
                 for (let z = 0; z < size.z; z++) {
                     world.setBlock(
                         new Vector3(x, y, z),
-                        y <= Math.floor(size.y/2) ? 1 : 0
+                        y <= Math.floor(size.y / 2) ? 1 : 0
                     );
                 }
             }
@@ -109,7 +125,13 @@ export class World {
         return world;
     }
 
-    static async fromFileWithDefault(fileOptions:WorldFromFileOptions,fallbackOptions: Omit<WorldOptions & Partial<Pick<WorldOptions,"spawn">>,"blocks">): Promise<World> {
+    static async fromFileWithDefault(
+        fileOptions: WorldFromFileOptions,
+        fallbackOptions: Omit<
+            WorldOptions & Partial<Pick<WorldOptions, "spawn">>,
+            "blocks"
+        >
+    ): Promise<World> {
         try {
             return await World.fromFile(fileOptions);
         } catch {

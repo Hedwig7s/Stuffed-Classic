@@ -6,7 +6,7 @@ export async function main() {
     const configRecord = serverContext.config;
     const host = configRecord.server.config.server.host;
     const port = configRecord.server.config.server.port;
-    server.start(host, port);
+    server.start(host, port, serverContext.worldManager);
 }
 if (import.meta.main) {
     main();

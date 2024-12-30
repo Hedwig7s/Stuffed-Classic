@@ -1,6 +1,7 @@
 import {
     FIXED_SHORT_OPTIONS as FIXED_SHORT_OPTIONS,
     PacketIds,
+    type Packet,
 } from "networking/packet/packet";
 import {
     createReceivablePacket,
@@ -50,7 +51,6 @@ export const identificationPacket7 =
             const player = new Player({
                 name: decoded.name,
                 fancyName: decoded.name,
-                context: connection.context,
                 connection: connection,
             });
             connection.player = player;
@@ -63,11 +63,11 @@ export const identificationPacket7 =
                 keyOrMotd: "A stuffed classic server",
                 userType: 0,
             });
-            if (!connection.context.defaultWorld) {
+            if (!connection.worldManager.defaultWorld) {
                 throw new Error("Default world not set");
             }
             player.entity
-                ?.spawn(connection.context.defaultWorld)
+                ?.spawn(connection.worldManager.defaultWorld)
                 .catch(connection.onError.bind(connection));
         },
     });

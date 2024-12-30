@@ -21,7 +21,6 @@ export interface ServerContext {
     entityRegistry: EntityRegistry;
     playerRegistry: EntityRegistry;
     protocols: Record<number, Protocol>;
-    defaultWorld?: World;
 }
 
 export function getConfigRecord(): ConfigRecord {
@@ -41,23 +40,27 @@ export async function getServerContext(): Promise<ServerContext> {
         config.loadSync();
     }
     const worldManager = new WorldManager({ autosave: true });
-    const defaultWorld = await World.fromFileWithDefault({
-        filePath: pathlib.join(
-            configRecord.server.config.worlds.worldDir,
-            configRecord.server.config.worlds.defaultWorld + ".hworld"
-        ),
-        parserClass: HWorldParser,
-    }, {
-        name: configRecord.server.config.worlds.defaultWorld,
-        size: new Vector3(100, 100, 100),
-        spawn: new EntityPosition(0, 0, 0, 0, 0),
-        serverConfig: configRecord.server
-    });
-        
+    const defaultWorld = await World.fromFileWithDefault(
+        {
+            filePath: pathlib.join(
+                configRecord.server.config.worlds.worldDir,
+                configRecord.server.config.worlds.defaultWorld + ".hworld"
+            ),
+            parserClass: HWorldParser,
+        },
+        {
+            name: configRecord.server.config.worlds.defaultWorld,
+            size: new Vector3(100, 100, 100),
+            spawn: new EntityPosition(0, 0, 0, 0, 0),
+            serverConfig: configRecord.server,
+        }
+    );
+    worldManager.setDefaultWorld(defaultWorld);
+
     const server = new Server(PROTOCOLS);
     const entityRegistry = new EntityRegistry();
     const playerRegistry = new EntityRegistry();
-    
+
     const serverContext: ServerContext = {
         worldManager,
         config: configRecord,
@@ -65,7 +68,6 @@ export async function getServerContext(): Promise<ServerContext> {
         entityRegistry,
         playerRegistry,
         protocols: PROTOCOLS,
-        defaultWorld
     };
     return serverContext;
 }

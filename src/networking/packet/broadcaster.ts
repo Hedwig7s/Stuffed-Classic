@@ -18,12 +18,7 @@ export class Broadcaster<T extends PacketData> {
     public readonly criteria?: (target: Connection) => boolean;
     public readonly server: Server;
 
-    constructor({
-        packetId,
-        modifier,
-        criteria,
-        server
-    }: BroadcastOptions<T>) {
+    constructor({ packetId, modifier, criteria, server }: BroadcastOptions<T>) {
         this.packetId = packetId;
         this.modifier = modifier;
         this.criteria = criteria;
@@ -37,9 +32,9 @@ export class Broadcaster<T extends PacketData> {
             if (!connection) continue;
             try {
                 if (this.criteria && !this.criteria(connection)) continue;
-                const packet = connection.protocol?.packets[
-                    this.packetId
-                ] as Packet<T>|undefined;
+                const packet = connection.protocol?.packets[this.packetId] as
+                    | Packet<T>
+                    | undefined;
                 if (!packet) continue;
                 if (!packet.send) continue;
                 const newData = this.modifier

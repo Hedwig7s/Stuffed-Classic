@@ -8,7 +8,7 @@ import { getSimpleLogger } from "utility/logger";
 export interface EntityOptions {
     name: string;
     fancyName: string;
-    registry?: EntityRegistry; // The registry to automatically register in, if any 
+    registry?: EntityRegistry; // The registry to automatically register in, if any
 }
 
 export abstract class Entity {

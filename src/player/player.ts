@@ -48,7 +48,7 @@ export class Player {
 
         await world.pack(protocol.version, (data, size, percent) => {
             levelDataPacket
-            // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
+                // eslint-disable-next-line @typescript-eslint/no-non-null-assertion
                 .send(this.connection!, {
                     chunkData: data,
                     chunkLength: size,

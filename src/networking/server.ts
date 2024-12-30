@@ -5,6 +5,7 @@ import { PacketIds } from "networking/packet/packet";
 import type { Player } from "player/player";
 import type pino from "pino";
 import { getSimpleLogger } from "utility/logger";
+import type WorldManager from "data/worlds/worldmanager";
 
 async function writeFromSink(sink: ArrayBufferSink, socket: Socket<any>) {
     const data = sink.flush() as Uint8Array;
@@ -32,6 +33,7 @@ export class Connection {
         public readonly socket: Socket<SocketData>,
         public readonly id: number,
         public readonly protocols: Record<number, Protocol>,
+        public readonly worldManager: WorldManager
     ) {
         this.logger = getSimpleLogger(`Connection ${id}`);
         setTimeout(() => {
@@ -154,7 +156,7 @@ export class Server {
             }
         }
     }
-    start(host: string, port: number) {
+    start(host: string, port: number, worldManager: WorldManager) {
         this.host = host;
         this.port = port;
         this.server = Bun.listen<SocketData>({
@@ -197,6 +199,7 @@ export class Server {
                                 socket,
                                 id,
                                 this.protocols,
+                                worldManager
                             ),
                             faucet: new ArrayBufferSink(),
                             sink: new ArrayBufferSink(),

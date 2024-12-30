@@ -52,7 +52,7 @@ export enum PacketIds {
     SetBlockClient = 0x05,
     SetBlockServer = 0x06,
     SpawnPlayer = 0x07,
-    // PositionAndOrientation = 0x08,
+    PositionAndOrientation = 0x08,
     // PositionAndOrientationUpdate = 0x09,
     // PositionUpdate = 0x0a,
     // OrientationUpdate = 0x0b,

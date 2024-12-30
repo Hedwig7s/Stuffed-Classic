@@ -5,5 +5,5 @@ export const DEFAULT_CONFIGS = {
 };
 
 export const PROTOCOLS = {
-    [0x07]: (await import("networking/protocol/7/protocol")).default,
+    [0x07]: (await import("networking/protocol/7/protocol")).protocol7,
 };
