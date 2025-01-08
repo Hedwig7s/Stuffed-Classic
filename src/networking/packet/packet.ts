@@ -1,9 +1,9 @@
 import type { Connection } from "networking/server";
 import type {
-    BinaryParserType as BinaryParser,
+    IStructuredDataParser as BinaryParser,
     FixedOptions,
     StringOptions,
-} from "utility/dataparser";
+} from "utility/datastruct";
 import type { PacketData } from "networking/packet/packetdata";
 
 export const STRING_OPTIONS: StringOptions = {

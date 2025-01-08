@@ -7,7 +7,7 @@ import * as pathlib from "path";
 import type { Entity } from "entities/entity";
 import type WorldManager from "./worldmanager";
 import type WorldParser from "./parsers/base";
-import { ParserBuilder } from "utility/dataparser";
+import { StructuredParserBuilder } from "utility/datastruct";
 import { concatUint8Arrays } from "uint8array-extras";
 import type pino from "pino";
 import { getSimpleLogger } from "utility/logger";
@@ -205,7 +205,9 @@ export class World {
                 clearTimeout(timeout);
                 resolve();
             });
-            const headerParser = new ParserBuilder<{ levelSize: number }>()
+            const headerParser = new StructuredParserBuilder<{
+                levelSize: number;
+            }>()
                 .bigEndian()
                 .int32("levelSize")
                 .build();

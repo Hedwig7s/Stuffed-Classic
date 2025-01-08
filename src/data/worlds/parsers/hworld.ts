@@ -20,7 +20,7 @@
 import type WorldParser from "data/worlds/parsers/base";
 import Vector3 from "datatypes/vector3";
 import EntityPosition from "datatypes/entityposition";
-import { ParserBuilder } from "utility/dataparser";
+import { StructuredParserBuilder } from "utility/datastruct";
 import zlib from "zlib";
 
 import type { World } from "data/worlds/world";
@@ -55,12 +55,12 @@ interface Block {
     readonly count: number;
 }
 
-const VERSION_PARSER = new ParserBuilder<{ version: number }>()
+const VERSION_PARSER = new StructuredParserBuilder<{ version: number }>()
     .littleEndian()
     .uint32("version")
     .build();
 
-const V2HEADER_PARSER = new ParserBuilder<V2Header>()
+const V2HEADER_PARSER = new StructuredParserBuilder<V2Header>()
     .littleEndian()
     .uint32("version")
     .uint16("sizeX")
@@ -73,7 +73,7 @@ const V2HEADER_PARSER = new ParserBuilder<V2Header>()
     .uint8("spawnPitch")
     .build();
 
-const V4HEADER_PARSER = new ParserBuilder<V4Header>()
+const V4HEADER_PARSER = new StructuredParserBuilder<V4Header>()
     .littleEndian()
     .uint32("version")
     .fixedString("identifier", 6, "ascii")
@@ -88,7 +88,7 @@ const V4HEADER_PARSER = new ParserBuilder<V4Header>()
     .uint32("blockDataSize")
     .build();
 
-const BLOCK_PARSER = new ParserBuilder<Block>()
+const BLOCK_PARSER = new StructuredParserBuilder<Block>()
     .littleEndian()
     .uint8("id")
     .uint32("count")

@@ -1,11 +1,11 @@
 import * as iconv from "iconv-lite";
 
-export type ParserData<T> = {
-    [K in keyof T as T[K] extends string | number | bigint | Uint8Array
-        ? K
-        : never]: T[K];
+export type ValidBinaryValues = string | number | bigint | Uint8Array;
+
+export type StructDataFormat<T> = {
+    [K in keyof T as T[K] extends ValidBinaryValues ? K : never]: T[K];
 };
-interface Format<T extends ParserData<T>> {
+interface Format<T extends StructDataFormat<T>> {
     name: string;
     key: keyof T;
     size: number;
@@ -14,13 +14,13 @@ export interface IntOptions {
     size: number;
     signed: boolean;
 }
-type IntFormat<T extends ParserData<T>> = Format<T> & IntOptions;
+type IntFormat<T extends StructDataFormat<T>> = Format<T> & IntOptions;
 export interface StringOptions {
     type: "fixed" | "zero-terminated";
     length?: number;
     encoding?: string;
 }
-type StringFormat<T extends ParserData<T>> = Format<T> &
+type StringFormat<T extends StructDataFormat<T>> = Format<T> &
     StringOptions & {
         encoding: string;
     };
@@ -29,12 +29,18 @@ export interface FixedOptions {
     point: number;
     signed: boolean;
 }
-type FixedFormat<T extends ParserData<T>> = Format<T> & FixedOptions;
+type FixedFormat<T extends StructDataFormat<T>> = Format<T> & FixedOptions;
 
 export interface RawOptions {
     size: number;
 }
-type RawFormat<T extends ParserData<T>> = Format<T> & RawOptions;
+type RawFormat<T extends StructDataFormat<T>> = Format<T> & RawOptions;
+
+export interface PaddingOptions {
+    size: number;
+}
+
+type PaddingFormat<T extends StructDataFormat<T>> = Format<T> & PaddingOptions;
 
 const nativeEndianness: "big" | "little" = (() => {
     const b = new ArrayBuffer(4);
@@ -46,7 +52,7 @@ const nativeEndianness: "big" | "little" = (() => {
     throw new Error("unknown endianness");
 })();
 
-function parseInt(
+function decodeInt(
     format: IntFormat<any>,
     data: Uint8Array,
     endianness: "big" | "little"
@@ -56,10 +62,6 @@ function parseInt(
     const end = endianness === "little" ? -1 : format.size;
     const step = endianness === "little" ? -1 : 1;
     for (let i = start; i !== end; i += step) {
-        if (i == 5) {
-            // If number is higher than 32 bits
-            value = BigInt(value);
-        }
         value = value * 256n + BigInt(data[i]);
     }
     if (format.signed) {
@@ -103,7 +105,7 @@ function encodeInt(
     return out;
 }
 
-class BinaryParser<T extends ParserData<T>> {
+class StructuredDataParser<T extends StructDataFormat<T>> {
     public readonly formatList: Format<T>[];
     protected endianness: "little" | "big";
 
@@ -123,7 +125,12 @@ class BinaryParser<T extends ParserData<T>> {
         this.size = size;
     }
 
-    decode(data: Uint8Array): T {
+    decode(inputData: Uint8Array | string | ArrayLike<number>): T {
+        let data: Uint8Array;
+        if (typeof inputData == "string") data = Uint8Array.from(inputData);
+        else if (!(inputData instanceof Uint8Array))
+            data = new Uint8Array(inputData);
+        else data = inputData;
         const decoded: Partial<T> = {};
         let offset = 0;
         this.endianness = nativeEndianness;
@@ -150,7 +157,7 @@ class BinaryParser<T extends ParserData<T>> {
                         offset,
                         (offset += intFormat.size)
                     );
-                    let result: bigint | number = parseInt(
+                    let result: bigint | number = decodeInt(
                         intFormat,
                         slice,
                         this.endianness
@@ -253,7 +260,7 @@ class BinaryParser<T extends ParserData<T>> {
                         offset,
                         (offset += fixedFormat.size)
                     );
-                    const value = parseInt(
+                    const value = decodeInt(
                         { ...fixedFormat, name: "integer" },
                         slice,
                         this.endianness
@@ -279,6 +286,11 @@ class BinaryParser<T extends ParserData<T>> {
                         (offset += rawFormat.size)
                     );
                     decoded[rawFormat.key] = slice as T[keyof T];
+                    break;
+                }
+                case "padding": {
+                    const paddingFormat = format as PaddingFormat<T>;
+                    offset += paddingFormat.size;
                     break;
                 }
                 default: {
@@ -329,7 +341,11 @@ class BinaryParser<T extends ParserData<T>> {
         }
         for (const format of this.formatList) {
             const value = data[format.key as keyof T];
-            if (value == null && !format.name.endsWith("endian")) {
+            if (
+                value == null &&
+                !format.name.endsWith("endian") &&
+                format.name !== "padding"
+            ) {
                 throw new Error(`Key ${String(format.key)} not found in data`);
             }
             switch (format.name) {
@@ -489,6 +505,13 @@ class BinaryParser<T extends ParserData<T>> {
                     offset += rawFormat.size;
                     break;
                 }
+                case "padding": {
+                    const paddingFormat = format as PaddingFormat<T>;
+                    checkSize(paddingFormat.size);
+                    out.set(new Uint8Array(paddingFormat.size).fill(0));
+                    offset += paddingFormat.size;
+                    break;
+                }
                 default: {
                     throw new Error("Unknown format " + format.name);
                 }
@@ -497,8 +520,9 @@ class BinaryParser<T extends ParserData<T>> {
         return out.subarray(0, offset);
     }
 }
-export type BinaryParserType<T extends ParserData<T>> = BinaryParser<T>;
-export class ParserBuilder<T extends ParserData<T>> {
+export type IStructuredDataParser<T extends StructDataFormat<T>> =
+    StructuredDataParser<T>;
+export class StructuredParserBuilder<T extends StructDataFormat<T>> {
     private formatList: Format<any>[] = [];
 
     integer(key: keyof T, options: IntOptions): this {
@@ -625,6 +649,13 @@ export class ParserBuilder<T extends ParserData<T>> {
         this.formatList.push(format);
         return this;
     }
+    padding(size: number) {
+        this.formatList.push({
+            size,
+            key: "",
+            name: "padding",
+        });
+    }
     nativeEndian(): this {
         this.formatList.push({
             name: "native-endian",
@@ -652,7 +683,7 @@ export class ParserBuilder<T extends ParserData<T>> {
         return this;
     }
 
-    build(): BinaryParser<T> {
-        return new BinaryParser<T>(this.formatList);
+    build(): StructuredDataParser<T> {
+        return new StructuredDataParser<T>(this.formatList);
     }
 }

@@ -10,7 +10,7 @@ import {
 } from "networking/packet/factories";
 import { STRING_OPTIONS } from "networking/packet/packet";
 import { assertPacket } from "networking/packet/utilities";
-import { ParserBuilder } from "utility/dataparser";
+import { StructuredParserBuilder } from "utility/datastruct";
 import type { Connection } from "networking/server";
 import Player from "player/player";
 import Vector3 from "datatypes/vector3";
@@ -34,7 +34,7 @@ export const identificationPacket7 =
     createBidirectionalPacket<IdentificationPacketData>({
         name: "Identification",
         id: PacketIds.Identification,
-        parser: new ParserBuilder<IdentificationPacketData>()
+        parser: new StructuredParserBuilder<IdentificationPacketData>()
             .bigEndian()
             .uint8("id")
             .uint8("protocol")
@@ -75,7 +75,10 @@ export const identificationPacket7 =
 export const pingPacket7 = createBidirectionalPacket<PingPacketData>({
     name: "Ping",
     id: PacketIds.Ping,
-    parser: new ParserBuilder<PingPacketData>().bigEndian().uint8("id").build(),
+    parser: new StructuredParserBuilder<PingPacketData>()
+        .bigEndian()
+        .uint8("id")
+        .build(),
     // eslint-disable-next-line @typescript-eslint/no-unused-vars
     async receive(connection: Connection, data: Uint8Array) {
         // No action needed
@@ -86,7 +89,7 @@ export const levelInitializePacket7 =
     createSendablePacket<LevelInitializePacketData>({
         name: "LevelInitialize",
         id: PacketIds.LevelInitialize,
-        parser: new ParserBuilder<LevelInitializePacketData>()
+        parser: new StructuredParserBuilder<LevelInitializePacketData>()
             .bigEndian()
             .uint8("id")
             .build(),
@@ -96,7 +99,7 @@ export const levelDataChunkPacket7 =
     createSendablePacket<LevelDataChunkPacketData>({
         name: "LevelDataChunk",
         id: PacketIds.LevelDataChunk,
-        parser: new ParserBuilder<LevelDataChunkPacketData>()
+        parser: new StructuredParserBuilder<LevelDataChunkPacketData>()
             .bigEndian()
             .uint8("id")
             .int16("chunkLength")
@@ -109,7 +112,7 @@ export const levelFinalizePacket7 =
     createSendablePacket<LevelFinalizePacketData>({
         name: "LevelFinalize",
         id: PacketIds.LevelFinalize,
-        parser: new ParserBuilder<LevelFinalizePacketData>()
+        parser: new StructuredParserBuilder<LevelFinalizePacketData>()
             .bigEndian()
             .uint8("id")
             .int16("worldSizeX")
@@ -122,7 +125,7 @@ export const setBlockClientPacket7 =
     createReceivablePacket<SetBlockClientPacketData>({
         name: "SetBlockClient",
         id: PacketIds.SetBlockClient,
-        parser: new ParserBuilder<SetBlockClientPacketData>()
+        parser: new StructuredParserBuilder<SetBlockClientPacketData>()
             .bigEndian()
             .uint8("id")
             .int16("x")
@@ -154,7 +157,7 @@ export const setBlockServerPacket7 =
     createSendablePacket<SetBlockServerPacketData>({
         name: "SetBlockClient",
         id: PacketIds.SetBlockServer,
-        parser: new ParserBuilder<SetBlockServerPacketData>()
+        parser: new StructuredParserBuilder<SetBlockServerPacketData>()
             .bigEndian()
             .uint8("id")
             .int16("x")
@@ -167,7 +170,7 @@ export const setBlockServerPacket7 =
 export const spawnPlayerPacket7 = createSendablePacket<SpawnPlayerPacketData>({
     name: "SpawnPlayer",
     id: PacketIds.SpawnPlayer,
-    parser: new ParserBuilder<SpawnPlayerPacketData>()
+    parser: new StructuredParserBuilder<SpawnPlayerPacketData>()
         .bigEndian()
         .uint8("id")
         .int8("entityId")
@@ -183,7 +186,7 @@ export const spawnPlayerPacket7 = createSendablePacket<SpawnPlayerPacketData>({
 export const positionAndOrientationPacket7 = createBidirectionalPacket({
     name: "PositionAndOrientation",
     id: 0x08,
-    parser: new ParserBuilder<PositionAndOrientationPacketData>()
+    parser: new StructuredParserBuilder<PositionAndOrientationPacketData>()
         .bigEndian()
         .uint8("id")
         .int8("entityId")

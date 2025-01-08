@@ -1,5 +1,5 @@
 import type Protocol from "networking/protocol/protocol";
-import type { BinaryParserType as BinaryParser } from "utility/dataparser";
+import type { IStructuredDataParser as BinaryParser } from "utility/datastruct";
 
 type PacketTypes = "Sendable" | "Receivable" | "Bidirectional" | "None";
 export function assertPacket<K extends keyof Protocol["packets"]>(
