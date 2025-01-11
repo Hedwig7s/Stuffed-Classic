@@ -19,7 +19,6 @@ export interface ServerContext {
     config: ConfigRecord;
     server: Server;
     entityRegistry: EntityRegistry;
-    playerRegistry: EntityRegistry;
     protocols: Record<number, Protocol>;
 }
 
@@ -47,6 +46,7 @@ export async function getServerContext(): Promise<ServerContext> {
                 configRecord.server.config.worlds.defaultWorld + ".hworld"
             ),
             parserClass: HWorldParser,
+            serverConfig: configRecord.server,
         },
         {
             name: configRecord.server.config.worlds.defaultWorld,
@@ -59,14 +59,12 @@ export async function getServerContext(): Promise<ServerContext> {
 
     const server = new Server(PROTOCOLS);
     const entityRegistry = new EntityRegistry();
-    const playerRegistry = new EntityRegistry();
 
     const serverContext: ServerContext = {
         worldManager,
         config: configRecord,
         server,
         entityRegistry,
-        playerRegistry,
         protocols: PROTOCOLS,
     };
     return serverContext;

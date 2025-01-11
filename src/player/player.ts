@@ -21,6 +21,47 @@ export class Player {
     public get protocol() {
         return this.connection?.protocol;
     }
+    public async replicateEntities() {
+        if (!this.connection) return;
+        const world = this.entity?.world;
+        if (!this.entity || !world) {
+            this.logger.warn("Player is not in a world");
+            return;
+        }
+        for (const entity of world.entities.values()) {
+            if (entity !== this.entity) {
+                await entity.spawnFor(this.connection);
+                if (
+                    entity instanceof PlayerEntity &&
+                    entity.player.connection
+                ) {
+                    await this.entity.spawnFor(entity.player.connection);
+                }
+            }
+        }
+        this.logger.trace("Other entities replicated");
+    }
+    public async spawnSelf() {
+        if (!this.entity || !this.connection) return;
+        const packet = this.protocol?.packets[PacketIds.SpawnPlayer];
+        if (!packet || !packet.send) {
+            this.logger.warn(
+                "Could not find SpawnPlayer packet for player entity"
+            );
+            return;
+        }
+        const { x, y, z, yaw, pitch } = this.entity.position;
+        await packet.send(this.connection, {
+            entityId: -1,
+            name: this.fancyName,
+            x,
+            y,
+            z,
+            yaw,
+            pitch,
+        });
+        this.logger.trace("Player spawned");
+    }
     public async loadWorld() {
         if (!this.connection || !this.connection.protocol) return;
         if (!this.entity?.world) {
@@ -64,6 +105,19 @@ export class Player {
                 worldSizeZ: world.size.z,
             })
             .catch(this.connection.onError.bind(this.connection));
+        this.logger.trace("World loaded");
+    }
+    public async spawn() {
+        if (!this.entity?.world || !this.connection) return;
+        await this.loadWorld();
+        await this.replicateEntities();
+        await this.spawnSelf();
+        this.logger.trace("Player entity spawned");
+    }
+    public cleanup() {
+        if (this.entity) {
+            this.entity.cleanup();
+        }
     }
     constructor(options: PlayerOptions) {
         this.connection = options.connection;

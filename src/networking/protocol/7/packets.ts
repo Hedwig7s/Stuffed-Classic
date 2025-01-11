@@ -10,7 +10,7 @@ import {
 } from "networking/packet/factories";
 import { STRING_OPTIONS } from "networking/packet/packet";
 import { assertPacket } from "networking/packet/utilities";
-import { StructuredParserBuilder } from "utility/datastruct";
+import { StructuredParserBuilder as StructParserBuilder } from "utility/datastruct";
 import type { Connection } from "networking/server";
 import Player from "player/player";
 import Vector3 from "datatypes/vector3";
@@ -27,6 +27,7 @@ import {
     type SpawnPlayerPacketData,
 } from "networking/packet/packetdata";
 import EntityPosition from "datatypes/entityposition";
+import { sanitizeNetworkString } from "utility/sanitizenetworkstring";
 
 const PROTOCOL_VERSION = 7;
 
@@ -34,7 +35,7 @@ export const identificationPacket7 =
     createBidirectionalPacket<IdentificationPacketData>({
         name: "Identification",
         id: PacketIds.Identification,
-        parser: new StructuredParserBuilder<IdentificationPacketData>()
+        parser: new StructParserBuilder<IdentificationPacketData>()
             .bigEndian()
             .uint8("id")
             .uint8("protocol")
@@ -49,8 +50,8 @@ export const identificationPacket7 =
             );
             const decoded = this.parser.decode(data);
             const player = new Player({
-                name: decoded.name,
-                fancyName: decoded.name,
+                name: sanitizeNetworkString(decoded.name),
+                fancyName: sanitizeNetworkString(decoded.name),
                 connection: connection,
             });
             connection.player = player;
@@ -75,7 +76,7 @@ export const identificationPacket7 =
 export const pingPacket7 = createBidirectionalPacket<PingPacketData>({
     name: "Ping",
     id: PacketIds.Ping,
-    parser: new StructuredParserBuilder<PingPacketData>()
+    parser: new StructParserBuilder<PingPacketData>()
         .bigEndian()
         .uint8("id")
         .build(),
@@ -89,7 +90,7 @@ export const levelInitializePacket7 =
     createSendablePacket<LevelInitializePacketData>({
         name: "LevelInitialize",
         id: PacketIds.LevelInitialize,
-        parser: new StructuredParserBuilder<LevelInitializePacketData>()
+        parser: new StructParserBuilder<LevelInitializePacketData>()
             .bigEndian()
             .uint8("id")
             .build(),
@@ -99,7 +100,7 @@ export const levelDataChunkPacket7 =
     createSendablePacket<LevelDataChunkPacketData>({
         name: "LevelDataChunk",
         id: PacketIds.LevelDataChunk,
-        parser: new StructuredParserBuilder<LevelDataChunkPacketData>()
+        parser: new StructParserBuilder<LevelDataChunkPacketData>()
             .bigEndian()
             .uint8("id")
             .int16("chunkLength")
@@ -112,7 +113,7 @@ export const levelFinalizePacket7 =
     createSendablePacket<LevelFinalizePacketData>({
         name: "LevelFinalize",
         id: PacketIds.LevelFinalize,
-        parser: new StructuredParserBuilder<LevelFinalizePacketData>()
+        parser: new StructParserBuilder<LevelFinalizePacketData>()
             .bigEndian()
             .uint8("id")
             .int16("worldSizeX")
@@ -125,7 +126,7 @@ export const setBlockClientPacket7 =
     createReceivablePacket<SetBlockClientPacketData>({
         name: "SetBlockClient",
         id: PacketIds.SetBlockClient,
-        parser: new StructuredParserBuilder<SetBlockClientPacketData>()
+        parser: new StructParserBuilder<SetBlockClientPacketData>()
             .bigEndian()
             .uint8("id")
             .int16("x")
@@ -157,7 +158,7 @@ export const setBlockServerPacket7 =
     createSendablePacket<SetBlockServerPacketData>({
         name: "SetBlockClient",
         id: PacketIds.SetBlockServer,
-        parser: new StructuredParserBuilder<SetBlockServerPacketData>()
+        parser: new StructParserBuilder<SetBlockServerPacketData>()
             .bigEndian()
             .uint8("id")
             .int16("x")
@@ -170,7 +171,7 @@ export const setBlockServerPacket7 =
 export const spawnPlayerPacket7 = createSendablePacket<SpawnPlayerPacketData>({
     name: "SpawnPlayer",
     id: PacketIds.SpawnPlayer,
-    parser: new StructuredParserBuilder<SpawnPlayerPacketData>()
+    parser: new StructParserBuilder<SpawnPlayerPacketData>()
         .bigEndian()
         .uint8("id")
         .int8("entityId")
@@ -178,23 +179,23 @@ export const spawnPlayerPacket7 = createSendablePacket<SpawnPlayerPacketData>({
         .fixed("x", FIXED_SHORT_OPTIONS)
         .fixed("y", FIXED_SHORT_OPTIONS)
         .fixed("z", FIXED_SHORT_OPTIONS)
-        .fixed("yaw", FIXED_SHORT_OPTIONS)
-        .fixed("pitch", FIXED_SHORT_OPTIONS)
+        .uint8("yaw")
+        .uint8("pitch")
         .build(),
 });
 
 export const positionAndOrientationPacket7 = createBidirectionalPacket({
     name: "PositionAndOrientation",
     id: 0x08,
-    parser: new StructuredParserBuilder<PositionAndOrientationPacketData>()
+    parser: new StructParserBuilder<PositionAndOrientationPacketData>()
         .bigEndian()
         .uint8("id")
         .int8("entityId")
         .fixed("x", FIXED_SHORT_OPTIONS)
         .fixed("y", FIXED_SHORT_OPTIONS)
         .fixed("z", FIXED_SHORT_OPTIONS)
-        .fixed("yaw", FIXED_SHORT_OPTIONS)
-        .fixed("pitch", FIXED_SHORT_OPTIONS)
+        .uint8("yaw")
+        .uint8("pitch")
         .build(),
     async receive(connection: Connection, data: Uint8Array) {
         const decoded = this.parser.decode(data);

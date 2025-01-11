@@ -300,7 +300,10 @@ export class World {
     }
 
     unregisterEntity(entity: Entity) {
-        if (entity.worldEntityId < 0) {
+        if (
+            entity.worldEntityId < 0 ||
+            !this.entities.has(entity.worldEntityId)
+        ) {
             throw new Error("Entity is not registered");
         }
         this.entities.delete(entity.worldEntityId);

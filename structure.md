@@ -1,6 +1,7 @@
 # Project Structure
 
 - `../main.ts` - Initializes the server, main entrypoint
+- `servercontext.ts` - Defines a structure for storing all server instances, as well as a factory for creating said instances
 
 ## data/
 
