@@ -22,12 +22,13 @@ export class Connection {
     public readonly logger: pino.Logger;
     protected receivedBuffer: ArrayBufferSink;
     protected toSendBuffer: ArrayBufferSink;
-
+    
     constructor(
         public readonly socket: Socket<SocketData>,
         public readonly id: number,
         public readonly protocols: Record<number, Protocol>,
-        public readonly worldManager: WorldManager
+        public readonly worldManager: WorldManager,
+        public readonly server: Server
     ) {
         this.logger = getSimpleLogger(`Connection ${id}`);
         const sinkSettings = {
@@ -214,7 +215,8 @@ export class Server {
                                 socket,
                                 id,
                                 this.protocols,
-                                worldManager
+                                worldManager,
+                                this
                             ),
                         };
                         this._connections.set(

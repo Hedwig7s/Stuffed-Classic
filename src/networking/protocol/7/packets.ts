@@ -203,7 +203,7 @@ export const positionAndOrientationPacket7 = createBidirectionalPacket({
         if (!player) return;
         const { x, y, z, yaw, pitch } = decoded;
         const position = new EntityPosition(x, y, z, yaw, pitch);
-        player.entity?.move(position);
+        player.entity?.move(position, true, true);
     },
 });
 export const PACKETS = {

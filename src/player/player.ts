@@ -128,6 +128,7 @@ export class Player {
                 player: this,
                 name: this.name,
                 fancyName: this.fancyName,
+                server: this.connection?.server,
             });
         }
         this.logger = getSimpleLogger(`Player ${this.name}`);

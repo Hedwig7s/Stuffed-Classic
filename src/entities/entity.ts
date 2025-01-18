@@ -1,16 +1,19 @@
 import type World from "data/worlds/world";
+import type { PositionAndOrientationPacketData } from "networking/packet/packetdata";
 import EntityPosition from "datatypes/entityposition";
 import { EntityRegistry } from "entities/entityregistry";
+import { Broadcaster } from "networking/packet/broadcaster";
+import { criterias } from "networking/packet/broadcasterutil";
 import { PacketIds } from "networking/packet/packet";
-import type { Connection } from "networking/server";
+import type { Connection, Server } from "networking/server";
 import type pino from "pino";
-import type Player from "player/player";
 import { getSimpleLogger } from "utility/logger";
 
 export interface EntityOptions {
     name: string;
     fancyName: string;
     registry?: EntityRegistry; // The registry to automatically register in, if any
+    server?: Server;
 }
 
 export abstract class Entity {
@@ -23,10 +26,12 @@ export abstract class Entity {
     public position = new EntityPosition(0, 0, 0, 0, 0);
     public destroyed = false;
     public readonly logger: pino.Logger;
-    constructor({ name, fancyName, registry: registry }: EntityOptions) {
+    public readonly server?: Server;
+    constructor({ name, fancyName, registry, server }: EntityOptions) {
         this.name = name;
         this.fancyName = fancyName;
         this.logger = getSimpleLogger(`Entity ${this.name}`);
+        this.server = server;
         if (registry) {
             registry.register(this);
         }
@@ -52,8 +57,23 @@ export abstract class Entity {
         }
         this.destroyed = true;
     }
-    public move(position: EntityPosition) {
+    public move(position: EntityPosition, broadcast = true) {
         this.position = position;
+        if (!this.world || !this.server || !broadcast) return;
+        const broadcaster = new Broadcaster<PositionAndOrientationPacketData>({
+            server: this.server,
+            packetId: PacketIds.PositionAndOrientation,
+            criteria: criterias.sameWorld(this.world),
+        });
+        const { x, y, z, yaw, pitch } = position;
+        broadcaster.broadcast({
+            entityId: this.worldEntityId,
+            x,
+            y,
+            z,
+            yaw,
+            pitch,
+        });
     }
     public spawnFor(connection: Connection): Promise<void> {
         if (this.destroyed || !this.world || this.worldEntityId === -1) {

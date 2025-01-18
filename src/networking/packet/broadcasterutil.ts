@@ -1,14 +1,15 @@
-import type Player from "player/player";
+import Player from "player/player";
 import type { Connection } from "networking/server";
 import type { PacketData } from "./packetdata";
+import type World from "data/worlds/world";
+import Entity from "entities/entity";
 export const criterias = {
-    sameWorld: (source: Player) => {
+    sameWorld: (source: Entity | World) => {
         return (target: Connection): boolean => {
-            return new Boolean(
-                target.player?.entity &&
-                    source.entity &&
-                    target.player?.entity?.world === source.entity?.world
-            ).valueOf();
+            if (source instanceof Entity) {
+                return new Boolean((source.world && target.player?.entity?.world) && target.player?.entity?.world === source.world).valueOf();
+            }
+            return target.player?.entity?.world === source;
         };
     },
     notSelf: (source?: Connection) => {
