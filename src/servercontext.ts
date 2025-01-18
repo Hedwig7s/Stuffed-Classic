@@ -1,5 +1,5 @@
-import Config from "data/config";
-import { DEFAULT_CONFIGS, PROTOCOLS } from "data/constants";
+import Config from "data/config/config";
+import { DEFAULT_CONFIGS, PROTOCOLS } from "data/configs/constants";
 import World from "data/worlds/world";
 import WorldManager from "data/worlds/worldmanager";
 import pathlib from "path";

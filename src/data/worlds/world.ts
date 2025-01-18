@@ -13,8 +13,8 @@ import type pino from "pino";
 import { getSimpleLogger } from "utility/logger";
 import { PacketIds } from "networking/packet/packet";
 import PlayerEntity from "entities/playerentity";
-import type { DEFAULT_CONFIGS } from "data/constants";
-import type { Config } from "data/config";
+import type { DEFAULT_CONFIGS } from "data/configs/constants";
+import type { Config } from "data/config/config";
 
 export interface WorldOptions {
     name: string;
@@ -305,7 +305,9 @@ export class World {
             !this.entities.has(entity.worldEntityId) ||
             this.entities.get(entity.worldEntityId) !== entity
         ) {
-            throw new Error("Entity is not registered, or is registered incorrectly");
+            throw new Error(
+                "Entity is not registered, or is registered incorrectly"
+            );
         }
         this.entities.delete(entity.worldEntityId);
         entity.worldEntityId = -1;

@@ -23,7 +23,7 @@ Files related to configuration
 Default formats for all configuration files
 
 - `data/configs/`
-  - `main.ts` - Main server configuration
+  - `server.ts` - Main server configuration
 
 ### data/worlds/
 
@@ -77,6 +77,7 @@ Files pertaining to client communication
   - `SendablePacket` interface: Packet with a send method for sending data to a client
   - `ReceivablePacket` interface: Packet with a receive method that processes incoming data
 - `networking/packet/packetdata.ts` - Contains interfaces defining specific data formats for each packet
+- `networking/packet/utilities.ts` - Utility functions related to packets
 
 ### networking/protocol/
 
@@ -103,8 +104,9 @@ Files pertaining to client communication
 
 General miscellaneous utility functions and classes, generally portable
 
-- `utility/dataparser.ts`
-  - `BinaryParser` class: Encodes and decodes binary data based on a format list. Also does rudementary data verification
-  - `ParserBuilder` class: Builds a BinaryParser based on chained arguments (such as endianness and data)
+- `utility/datastruct.ts`
+  - `StructuredDataParser` class: Encodes and decodes binary data based on a format list. Also does rudementary data verification
+  - `StructuredParserBuilder` class: Builds a BinaryParser based on chained arguments (such as endianness and data)
 - `utility/fixed.ts` - Functions for converting a number to and from fixed point representation
 - `utility/logger.ts` - Basic logger factory
+- `utility/sanitizenetworkstring.ts` - Simple function to remove trailing spaces from a string
