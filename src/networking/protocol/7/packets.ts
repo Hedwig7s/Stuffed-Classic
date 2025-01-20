@@ -264,7 +264,7 @@ export const despawnPlayerPacket7 = createSendablePacket({
         .build(),
 });
 
-export const chatMessagePacket7 = createSendablePacket({
+export const chatMessagePacket7 = createBidirectionalPacket({
     name: "ChatMessage",
     id: PacketIds.ChatMessage,
     parser: new StructParserBuilder<ChatMessagePacketData>()
@@ -272,6 +272,9 @@ export const chatMessagePacket7 = createSendablePacket({
         .uint8("id")
         .string("message", STRING_OPTIONS)
         .build(),
+    async receive(connection: Connection, data: Uint8Array) {
+        //
+    },
 });
 
 export const disconnectPlayerPacket7 = createSendablePacket({

@@ -5,15 +5,22 @@ import {
     type ReceivablePacket,
 } from "networking/packet/packet";
 import type {
+    ChatMessagePacketData,
+    DespawnPlayerPacketData,
+    DisconnectPlayerPacketData,
     IdentificationPacketData,
     LevelDataChunkPacketData,
     LevelFinalizePacketData,
     LevelInitializePacketData,
+    OrientationUpdatePacketData,
     PingPacketData,
     PositionAndOrientationPacketData,
+    PositionAndOrientationUpdatePacketData,
+    PositionUpdatePacketData,
     SetBlockClientPacketData,
     SetBlockServerPacketData,
     SpawnPlayerPacketData,
+    UpdateUserTypePacketData,
 } from "networking/packet/packetdata";
 
 export interface Protocol {
@@ -28,6 +35,14 @@ export interface Protocol {
         [PacketIds.SetBlockServer]: SendablePacket<SetBlockServerPacketData>;
         [PacketIds.SpawnPlayer]: SendablePacket<SpawnPlayerPacketData>;
         [PacketIds.PositionAndOrientation]: BidirectionalPacket<PositionAndOrientationPacketData>;
+        [PacketIds.PositionAndOrientationUpdate]: SendablePacket<PositionAndOrientationUpdatePacketData>;
+        [PacketIds.PositionUpdate]: SendablePacket<PositionUpdatePacketData>;
+        [PacketIds.OrientationUpdate]: SendablePacket<OrientationUpdatePacketData>;
+        [PacketIds.DespawnPlayer]: SendablePacket<DespawnPlayerPacketData>;
+        [PacketIds.ChatMessage]: BidirectionalPacket<ChatMessagePacketData>;
+        [PacketIds.DisconnectPlayer]: SendablePacket<DisconnectPlayerPacketData>;
+        [PacketIds.UpdateUserType]: SendablePacket<UpdateUserTypePacketData>;
+
     };
 
     checkIdentifier(identifier: Uint8Array): boolean;
