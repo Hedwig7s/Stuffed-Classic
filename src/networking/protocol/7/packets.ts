@@ -1,7 +1,7 @@
 import {
+    FIXED_BYTE_OPTIONS,
     FIXED_SHORT_OPTIONS as FIXED_SHORT_OPTIONS,
     PacketIds,
-    type Packet,
 } from "networking/packet/packet";
 import {
     createReceivablePacket,
@@ -25,6 +25,13 @@ import {
     type SetBlockClientPacketData,
     type SetBlockServerPacketData,
     type SpawnPlayerPacketData,
+    type PositionAndOrientationUpdatePacketData,
+    type PositionUpdatePacketData,
+    type OrientationUpdatePacketData,
+    type DespawnPlayerPacketData,
+    type ChatMessagePacketData,
+    type DisconnectPlayerPacketData,
+    type UpdateUserTypePacketData,
 } from "networking/packet/packetdata";
 import EntityPosition from "datatypes/entityposition";
 import { sanitizeNetworkString } from "utility/sanitizenetworkstring";
@@ -206,6 +213,87 @@ export const positionAndOrientationPacket7 = createBidirectionalPacket({
         player.entity?.move(position, true, true);
     },
 });
+
+export const positionAndOrientationUpdatePacket7 = createSendablePacket({
+    name: "PositionAndOrientationUpdate",
+    id: PacketIds.PositionAndOrientationUpdate,
+    parser: new StructParserBuilder<PositionAndOrientationUpdatePacketData>()
+        .bigEndian()
+        .uint8("id")
+        .int8("entityId")
+        .fixed("x", FIXED_BYTE_OPTIONS)
+        .fixed("y", FIXED_BYTE_OPTIONS)
+        .fixed("z", FIXED_BYTE_OPTIONS)
+        .uint8("yaw")
+        .uint8("pitch")
+        .build(),
+});
+
+export const positionUpdatePacket7 = createSendablePacket({
+    name: "PositionUpdate",
+    id: PacketIds.PositionUpdate,
+    parser: new StructParserBuilder<PositionUpdatePacketData>()
+        .bigEndian()
+        .uint8("id")
+        .int8("entityId")
+        .fixed("x", FIXED_BYTE_OPTIONS)
+        .fixed("y", FIXED_BYTE_OPTIONS)
+        .fixed("z", FIXED_BYTE_OPTIONS)
+        .build(),
+});
+
+export const orientationUpdatePacket7 = createSendablePacket({
+    name: "OrientationUpdate",
+    id: PacketIds.OrientationUpdate,
+    parser: new StructParserBuilder<OrientationUpdatePacketData>()
+        .bigEndian()
+        .uint8("id")
+        .int8("entityId")
+        .uint8("yaw")
+        .uint8("pitch")
+        .build(),
+});
+
+export const despawnPlayerPacket7 = createSendablePacket({
+    name: "DespawnPlayer",
+    id: PacketIds.DespawnPlayer,
+    parser: new StructParserBuilder<DespawnPlayerPacketData>()
+        .bigEndian()
+        .uint8("id")
+        .int8("entityId")
+        .build(),
+});
+
+export const chatMessagePacket7 = createSendablePacket({
+    name: "ChatMessage",
+    id: PacketIds.ChatMessage,
+    parser: new StructParserBuilder<ChatMessagePacketData>()
+        .bigEndian()
+        .uint8("id")
+        .string("message", STRING_OPTIONS)
+        .build(),
+});
+
+export const disconnectPlayerPacket7 = createSendablePacket({
+    name: "DisconnectPlayer",
+    id: 0x0e,
+    parser: new StructParserBuilder<DisconnectPlayerPacketData>()
+        .bigEndian()
+        .uint8("id")
+        .string("reason", STRING_OPTIONS)
+        .build(),
+});
+
+export const updateUserTypePacket7 = createSendablePacket({
+    name: "UpdateUserType",
+    id: 0x0f,
+    parser: new StructParserBuilder<UpdateUserTypePacketData>()
+        .bigEndian()
+        .uint8("id")
+        .uint8("userType")
+        .build(),
+});
+
 export const PACKETS = {
     [PacketIds.Identification]: identificationPacket7,
     [PacketIds.Ping]: pingPacket7,
@@ -216,4 +304,13 @@ export const PACKETS = {
     [PacketIds.SetBlockServer]: setBlockServerPacket7,
     [PacketIds.SpawnPlayer]: spawnPlayerPacket7,
     [PacketIds.PositionAndOrientation]: positionAndOrientationPacket7,
+    [PacketIds.PositionAndOrientationUpdate]: positionAndOrientationUpdatePacket7,
+    [PacketIds.PositionUpdate]: positionUpdatePacket7,
+    [PacketIds.OrientationUpdate]: orientationUpdatePacket7,
+    [PacketIds.DespawnPlayer]: despawnPlayerPacket7,
+    [PacketIds.ChatMessage]: chatMessagePacket7,
+    [PacketIds.DisconnectPlayer]: disconnectPlayerPacket7,
+    [PacketIds.UpdateUserType]: updateUserTypePacket7,
 };
+
+export default PACKETS;
