@@ -26,9 +26,7 @@ export class Connection {
     public readonly logger: pino.Logger;
     protected receivedBuffer: ArrayBufferSink;
     protected toSendBuffer: ArrayBufferSink;
-    public cooldowns: Record<"packet", Cooldown> = {
-        packet: { count: 0 },
-    };
+    public packetCooldown: Cooldown = { count: 0 };
     
     constructor(
         public readonly socket: Socket<SocketData>,
@@ -56,11 +54,11 @@ export class Connection {
         }, 10000);
         const checkCooldown = setInterval(() => {
             if (this.closed) clearInterval(checkCooldown);
-            if (this.cooldowns.packet.count > 50) {
+            if (this.packetCooldown.count > 50) {
                 this.logger.warn("Packet flood detected");
                 this.close();
             }
-            this.cooldowns.packet.count = 0;
+            this.packetCooldown.count = 0;
         }, 1000);
     }
 
@@ -207,7 +205,7 @@ export class Server {
                             new Uint8Array(data)
                         );
                         if (socket.data.connection) 
-                            socket.data.connection.cooldowns.packet.count++;
+                            socket.data.connection.packetCooldown.count++;
                     } catch {
                         socket.end();
                     }
