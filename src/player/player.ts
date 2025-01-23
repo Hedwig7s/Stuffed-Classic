@@ -5,6 +5,8 @@ import { PacketIds } from "networking/packet/packet";
 import { assertPacket } from "networking/packet/utilities";
 import type { Connection } from "networking/server";
 import type pino from "pino";
+import type TypedEventEmitter from "typed-emitter";
+import EventEmitter from "events";
 import { getSimpleLogger } from "utility/logger";
 
 export interface PlayerOptions {
@@ -15,9 +17,16 @@ export interface PlayerOptions {
     defaultChatroom?: Chatroom;
 }
 
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
+type PlayerEvents = {
+    destroy: () => void;
+};
+
 export class Player {
     public readonly connection?: Connection;
     public readonly name: string;
+    public readonly emitter =
+        new EventEmitter() as TypedEventEmitter<PlayerEvents>;
     public fancyName: string;
     public entity?: PlayerEntity;
     public logger: pino.Logger;
@@ -157,10 +166,9 @@ export class Player {
         }
         this.logger.info(`Sent message: ${message.message}`);
     }
-    public cleanup() {
-        if (this.entity) {
-            this.entity.cleanup();
-        }
+    public destroy() {
+        this.emitter.emit("destroy");
+        if (this.entity) this.entity.destroy();
     }
     constructor(options: PlayerOptions) {
         this.connection = options.connection;
@@ -174,6 +182,7 @@ export class Player {
                 fancyName: this.fancyName,
                 server: this.connection?.serviceRegistry.get("server"),
             });
+            this.entity.emitter.on("destroy", this.destroy.bind(this));
         }
         this.logger = getSimpleLogger(`Player ${this.name}`);
     }

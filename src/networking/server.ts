@@ -12,6 +12,8 @@ import { getSimpleLogger } from "utility/logger";
 import type WorldManager from "data/worlds/worldmanager";
 import { ServiceRegistry } from "utility/serviceregistry";
 import type { ServiceMap } from "servercontext";
+import type TypedEventEmitter from "typed-emitter";
+import EventEmitter from "events";
 
 export interface SocketData {
     connection: Connection;
@@ -21,6 +23,11 @@ interface Cooldown {
     count: number;
 }
 
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
+type ConnectionEvents = {
+    close: () => void;
+};
+
 export class Connection {
     public closed = false;
     public protocol?: Protocol;
@@ -29,6 +36,8 @@ export class Connection {
     protected receivedBuffer: ArrayBufferSink;
     protected toSendBuffer: ArrayBufferSink;
     public packetCooldown: Cooldown = { count: 0 };
+    public readonly emitter =
+        new EventEmitter() as TypedEventEmitter<ConnectionEvents>;
 
     constructor(
         public readonly socket: Socket<SocketData>,
@@ -155,8 +164,9 @@ export class Connection {
 
     close() {
         if (this.closed) return;
+        this.emitter.emit("close");
         try {
-            this.player?.cleanup();
+            this.player?.destroy();
             if (this.socket.readyState !== "closed") {
                 this.socket.end();
                 setTimeout(() => {
@@ -171,6 +181,11 @@ export class Connection {
     }
 }
 
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
+type ServerEvents = {
+    close: () => void;
+};
+
 export class Server {
     server?: TCPSocketListener;
     public host?: string;
@@ -178,6 +193,8 @@ export class Server {
     public connectionCount = 0;
     public stopped = false;
     public readonly logger = getSimpleLogger("Server");
+    public readonly emitter =
+        new EventEmitter() as TypedEventEmitter<ServerEvents>;
 
     public connections = new Map<number, WeakRef<Connection>>();
 
@@ -254,7 +271,6 @@ export class Server {
                 },
             },
         });
-
         setInterval(() => {
             if (!this.stopped) this.cleanConnections();
         }, 30000);
@@ -263,6 +279,7 @@ export class Server {
     }
 
     close() {
+        this.emitter.emit("close");
         this.server?.stop();
         this.stopped = true;
         this.logger.info("Server stopped");

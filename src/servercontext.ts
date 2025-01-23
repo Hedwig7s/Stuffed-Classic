@@ -11,6 +11,7 @@ import { EntityRegistry } from "entities/entityregistry";
 import type { Protocol } from "networking/protocol/protocol";
 import { ServiceRegistry } from "utility/serviceregistry";
 import { Chatroom } from "chat/chatroom";
+import { PlayerRegistry } from "player/playerregistry";
 
 export interface ConfigRecord {
     server: Config<typeof DEFAULT_CONFIGS.server>;
@@ -21,6 +22,7 @@ export interface ServerContext {
     config: ConfigRecord;
     server: Server;
     entityRegistry: EntityRegistry;
+    playerRegistry: PlayerRegistry;
     globalChatroom: Chatroom;
     protocols: Record<number, Protocol>;
     serviceRegistry: ServiceRegistry<ServiceMap>;
@@ -74,7 +76,8 @@ export async function getServerContext(): Promise<ServerContext> {
     serviceRegistry.register("entityRegistry", entityRegistry);
     const globalChatroom = new Chatroom("Global");
     serviceRegistry.register("globalChatroom", globalChatroom);
-
+    const playerRegistry = new PlayerRegistry();
+    serviceRegistry.register("playerRegistry", playerRegistry);
     const serverContext: ServerContext = {
         worldManager,
         config: configRecord,
@@ -83,6 +86,7 @@ export async function getServerContext(): Promise<ServerContext> {
         protocols: PROTOCOLS,
         serviceRegistry,
         globalChatroom,
+        playerRegistry,
     };
     return serverContext;
 }

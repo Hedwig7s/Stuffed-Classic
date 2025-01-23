@@ -8,6 +8,8 @@ import { PacketIds } from "networking/packet/packet";
 import type { Connection, Server } from "networking/server";
 import type pino from "pino";
 import { getSimpleLogger } from "utility/logger";
+import EventEmitter from "events";
+import type TypedEmitter from "typed-emitter";
 
 export interface EntityOptions {
     name: string;
@@ -15,6 +17,11 @@ export interface EntityOptions {
     registry?: EntityRegistry; // The registry to automatically register in, if any
     server?: Server;
 }
+
+// eslint-disable-next-line @typescript-eslint/consistent-type-definitions
+type EntityEvents = {
+    destroy: () => void;
+};
 
 export abstract class Entity {
     public readonly ids = new Map<EntityRegistry, string>();
@@ -27,6 +34,7 @@ export abstract class Entity {
     public destroyed = false;
     public readonly logger: pino.Logger;
     public readonly server?: Server;
+    public emitter = new EventEmitter() as TypedEmitter<EntityEvents>;
     constructor({ name, fancyName, registry, server }: EntityOptions) {
         this.name = name;
         this.fancyName = fancyName;
@@ -46,7 +54,8 @@ export abstract class Entity {
         this.world?.unregisterEntity(this);
         this.world = undefined;
     }
-    public cleanup() {
+    public destroy() {
+        this.emitter.emit("destroy");
         this.despawn();
         for (const registry of this.registries) {
             registry.unregister(this);

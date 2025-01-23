@@ -35,6 +35,7 @@ import {
 } from "networking/packet/packetdata";
 import EntityPosition from "datatypes/entityposition";
 import { sanitizeNetworkString } from "utility/sanitizenetworkstring";
+import type { PlayerRegistry } from "player/playerregistry";
 
 const PROTOCOL_VERSION = 7;
 
@@ -64,6 +65,11 @@ export const identificationPacket7 =
                     connection.serviceRegistry.get("globalChatroom"),
             });
             connection.player = player;
+            const playerRegistry =
+                connection.serviceRegistry.get("playerRegistry");
+            if (playerRegistry) {
+                playerRegistry.register(player);
+            }
             if (!clientPacket.send) {
                 throw new Error("Packet sender not found");
             }
