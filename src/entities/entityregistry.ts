@@ -1,30 +1,14 @@
 import type { Entity } from "entities/entity";
-import type pino from "pino";
-import { getSimpleLogger } from "utility/logger";
+import { DestroySubscriptionManager } from "utility/destroysubscriptionmanager";
 import { v4 as uuidv4 } from "uuid";
-
-export interface EntityRegistryOptions {
-    maxEntities?: number;
-    appendToList?: boolean; // If true, will append self to entity's registries list. Default is true
-}
 
 export class EntityRegistry {
     protected _entities = new Map<string, Entity>();
-    public readonly maxEntities: number;
-    protected appendToList: boolean;
-    public readonly logger: pino.Logger;
-
-    constructor({ maxEntities, appendToList }: EntityRegistryOptions = {}) {
-        this.logger = getSimpleLogger("EntityRegistry");
-        this.maxEntities = maxEntities ?? 10 ** 7;
-        this.appendToList = appendToList ?? true;
-    }
+    protected destroySubscriptions = new DestroySubscriptionManager<string>(
+        "destroy"
+    );
 
     register(entity: Entity, id?: string): string {
-        if (this._entities.size >= this.maxEntities) {
-            throw new Error("Too many entities");
-        }
-
         const entityId = id ?? uuidv4();
 
         if (this._entities.has(entityId)) {
@@ -34,9 +18,16 @@ export class EntityRegistry {
         this._entities.set(entityId, entity);
         entity.ids.set(this, entityId);
 
-        if (this.appendToList && !entity.registries.has(this)) {
-            entity.registries.add(this);
-        }
+        const destroySubscription = () => {
+            if (this._entities.has(entityId)) {
+                this.unregister(entityId);
+            }
+        };
+        this.destroySubscriptions.subscribe(
+            entityId,
+            entity.emitter,
+            destroySubscription
+        );
 
         return entityId;
     }
@@ -46,7 +37,9 @@ export class EntityRegistry {
             if (!this.has(entity)) {
                 throw new Error("Entity id wasn't registered");
             }
+            const ent = this._entities.get(entity) as Entity;
             this._entities.delete(entity);
+            this.destroySubscriptions.unsubscribe(entity, ent.emitter);
             return;
         }
 
@@ -60,7 +53,7 @@ export class EntityRegistry {
             throw new Error("Entity wasn't registered");
         }
         this._entities.delete(id);
-        entity.registries.delete(this);
+        this.destroySubscriptions.unsubscribe(id, entity.emitter);
         entity.ids.delete(this);
     }
 

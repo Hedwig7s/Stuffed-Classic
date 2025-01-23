@@ -35,7 +35,6 @@ import {
 } from "networking/packet/packetdata";
 import EntityPosition from "datatypes/entityposition";
 import { sanitizeNetworkString } from "utility/sanitizenetworkstring";
-import type { PlayerRegistry } from "player/playerregistry";
 
 const PROTOCOL_VERSION = 7;
 

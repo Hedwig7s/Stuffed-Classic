@@ -9,7 +9,6 @@ import {
 import type { Player } from "player/player";
 import type pino from "pino";
 import { getSimpleLogger } from "utility/logger";
-import type WorldManager from "data/worlds/worldmanager";
 import { ServiceRegistry } from "utility/serviceregistry";
 import type { ServiceMap } from "servercontext";
 import type TypedEventEmitter from "typed-emitter";
@@ -164,6 +163,7 @@ export class Connection {
 
     close() {
         if (this.closed) return;
+        this.closed = true;
         this.emitter.emit("close");
         try {
             this.player?.destroy();
@@ -177,7 +177,6 @@ export class Connection {
         } catch (error) {
             this.logger.error(error);
         }
-        this.closed = true;
     }
 }
 
@@ -196,18 +195,12 @@ export class Server {
     public readonly emitter =
         new EventEmitter() as TypedEventEmitter<ServerEvents>;
 
-    public connections = new Map<number, WeakRef<Connection>>();
+    public connections = new Map<number, Connection>();
 
     constructor(
         public readonly protocols: Record<number, Protocol>,
         public readonly serviceRegistry: ServiceRegistry<ServiceMap>
     ) {}
-
-    cleanConnections() {
-        for (const [id, connection] of this.connections) {
-            if (!connection.deref()) this.connections.delete(id);
-        }
-    }
 
     start(host: string, port: number) {
         this.host = host;
@@ -251,10 +244,10 @@ export class Server {
                                 this.serviceRegistry
                             ),
                         };
-                        this.connections.set(
-                            id,
-                            new WeakRef(socket.data.connection)
-                        );
+                        this.connections.set(id, socket.data.connection);
+                        socket.data.connection.emitter.on("close", () => {
+                            this.connections.delete(id);
+                        });
                         this.logger.info("Socket connected");
                     } catch (error) {
                         this.logger.error(error);
@@ -271,14 +264,12 @@ export class Server {
                 },
             },
         });
-        setInterval(() => {
-            if (!this.stopped) this.cleanConnections();
-        }, 30000);
 
         this.logger.info(`Server started at ${this.host}:${this.port}`);
     }
 
     close() {
+        if (this.stopped) return;
         this.emitter.emit("close");
         this.server?.stop();
         this.stopped = true;

@@ -25,7 +25,6 @@ type EntityEvents = {
 
 export abstract class Entity {
     public readonly ids = new Map<EntityRegistry, string>();
-    public readonly registries = new Set<EntityRegistry>();
     public name: string;
     public fancyName: string;
     public worldEntityId = -1;
@@ -55,16 +54,13 @@ export abstract class Entity {
         this.world = undefined;
     }
     public destroy() {
+        this.destroyed = true;
         this.emitter.emit("destroy");
         this.despawn();
-        for (const registry of this.registries) {
-            registry.unregister(this);
-        }
         if (this.world && this.worldEntityId >= 0) {
             this.world.unregisterEntity(this);
             this.worldEntityId = -1;
         }
-        this.destroyed = true;
     }
     public move(position: EntityPosition, broadcast = true) {
         this.position = position;

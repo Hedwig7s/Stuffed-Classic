@@ -30,6 +30,7 @@ export class Player {
     public fancyName: string;
     public entity?: PlayerEntity;
     public logger: pino.Logger;
+    public destroyed = false;
     protected _defaultChatroom?: Chatroom;
     public get defaultChatroom() {
         return this._defaultChatroom;
@@ -167,8 +168,9 @@ export class Player {
         this.logger.info(`Sent message: ${message.message}`);
     }
     public destroy() {
+        this.destroyed = true;
         this.emitter.emit("destroy");
-        if (this.entity) this.entity.destroy();
+        if (this.entity && !this.entity.destroyed) this.entity.destroy();
     }
     constructor(options: PlayerOptions) {
         this.connection = options.connection;
@@ -182,7 +184,11 @@ export class Player {
                 fancyName: this.fancyName,
                 server: this.connection?.serviceRegistry.get("server"),
             });
-            this.entity.emitter.on("destroy", this.destroy.bind(this));
+            const destroyListener = () => {
+                this.entity?.emitter.off("destroy", destroyListener);
+                this.destroy();
+            };
+            this.entity.emitter.on("destroy", destroyListener);
         }
         this.logger = getSimpleLogger(`Player ${this.name}`);
     }

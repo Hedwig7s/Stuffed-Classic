@@ -1,6 +1,9 @@
 import { readFile, writeFile, exists, mkdir } from "fs/promises";
 import { join as joinPath } from "path";
-import { handlers, type FileFormatHandler } from "data/config/configfilehandlers";
+import {
+    handlers,
+    type FileFormatHandler,
+} from "data/config/configfilehandlers";
 import { CONFIG_PATH } from "data/configs/constants";
 import type pino from "pino";
 import { getSimpleLogger } from "utility/logger";
