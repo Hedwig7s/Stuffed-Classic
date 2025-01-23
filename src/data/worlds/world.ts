@@ -15,7 +15,6 @@ import { PacketIds } from "networking/packet/packet";
 import PlayerEntity from "entities/playerentity";
 import type { DEFAULT_CONFIGS } from "data/configs/constants";
 import type { Config } from "data/config/config";
-import { DestroySubscriptionManager } from "utility/destroysubscriptionmanager";
 
 export interface WorldOptions {
     name: string;
@@ -52,8 +51,6 @@ export class World {
     public lastUpdate: number;
     public manager?: WorldManager;
     public readonly entities = new Map<number, Entity>();
-    protected readonly entityDestroySubscriptions =
-        new DestroySubscriptionManager<number>("destroy");
     public readonly logger: pino.Logger;
     public readonly serverConfig?: Config<typeof DEFAULT_CONFIGS.server>;
 
@@ -296,14 +293,6 @@ export class World {
             if (current == null || current.destroyed) {
                 this.entities.set(i, entity);
                 entity.worldEntityId = i;
-                const destroySubscription = () => {
-                    this.unregisterEntity(entity);
-                };
-                this.entityDestroySubscriptions.subscribe(
-                    i,
-                    entity.emitter,
-                    destroySubscription
-                );
                 return;
             }
         }
@@ -317,11 +306,6 @@ export class World {
             this.entities.get(entity.worldEntityId) !== entity
         )
             return;
-        this.entities.delete(entity.worldEntityId);
-        this.entityDestroySubscriptions.unsubscribe(
-            entity.worldEntityId,
-            entity.emitter
-        );
         entity.worldEntityId = -1;
     }
 }

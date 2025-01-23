@@ -4,7 +4,7 @@ import Entity, { type EntityOptions } from "entities/entity";
 import { Broadcaster } from "networking/packet/broadcaster";
 import { combineCriteria, criterias } from "networking/packet/broadcasterutil";
 import { PacketIds } from "networking/packet/packet";
-import type { PositionAndOrientationPacketData } from "networking/packet/packetdata";
+import type { DespawnPlayerPacketData, PositionAndOrientationPacketData } from "networking/packet/packetdata";
 import Player from "player/player";
 
 export interface PlayerEntityOptions extends EntityOptions {
@@ -53,7 +53,7 @@ export class PlayerEntity extends Entity {
     }
     public despawn(broadcast = true) {
         if (broadcast && this.world && this.server) {
-            const broadcaster = new Broadcaster({
+            const broadcaster = new Broadcaster<DespawnPlayerPacketData>({
                 server: this.server,
                 packetId: PacketIds.DespawnPlayer,
                 criteria: combineCriteria(

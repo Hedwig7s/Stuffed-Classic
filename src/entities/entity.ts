@@ -1,5 +1,5 @@
 import type World from "data/worlds/world";
-import type { PositionAndOrientationPacketData } from "networking/packet/packetdata";
+import type { DespawnPlayerPacketData, PositionAndOrientationPacketData } from "networking/packet/packetdata";
 import EntityPosition from "datatypes/entityposition";
 import { EntityRegistry } from "entities/entityregistry";
 import { Broadcaster } from "networking/packet/broadcaster";
@@ -51,7 +51,7 @@ export abstract class Entity {
     }
     public despawn(broadcast = true) {
         if (broadcast && this.world && this.server) {
-            const broadcaster = new Broadcaster({
+            const broadcaster = new Broadcaster<DespawnPlayerPacketData>({
                 server: this.server,
                 packetId: PacketIds.DespawnPlayer,
                 criteria: criterias.sameWorld(this),
@@ -65,10 +65,6 @@ export abstract class Entity {
         this.destroyed = true;
         this.emitter.emit("destroy");
         this.despawn();
-        if (this.world && this.worldEntityId >= 0) {
-            this.world.unregisterEntity(this);
-            this.worldEntityId = -1;
-        }
     }
     public move(position: EntityPosition, broadcast = true) {
         this.position = position;
