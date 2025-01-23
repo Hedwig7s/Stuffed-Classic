@@ -56,6 +56,11 @@ export const identificationPacket7 =
                 PacketIds.Identification
             );
             const decoded = this.parser.decode(data);
+            const playerRegistry = connection.serviceRegistry.get("playerRegistry");
+            if (playerRegistry && playerRegistry.has(sanitizeNetworkString(decoded.name))) {
+                connection.disconnectWithReason("Duplicate player name");
+                return;
+            }
             const player = new Player({
                 name: sanitizeNetworkString(decoded.name),
                 fancyName: sanitizeNetworkString(decoded.name),
@@ -64,8 +69,7 @@ export const identificationPacket7 =
                     connection.serviceRegistry.get("globalChatroom"),
             });
             connection.player = player;
-            const playerRegistry =
-                connection.serviceRegistry.get("playerRegistry");
+
             if (playerRegistry) {
                 playerRegistry.register(player);
             }
