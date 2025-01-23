@@ -49,7 +49,15 @@ export abstract class Entity {
         this.move(world.spawn);
         return Promise.resolve();
     }
-    public despawn() {
+    public despawn(broadcast = true) {
+        if (broadcast && this.world && this.server) {
+            const broadcaster = new Broadcaster({
+                server: this.server,
+                packetId: PacketIds.DespawnPlayer,
+                criteria: criterias.sameWorld(this),
+            });
+            broadcaster.broadcast({ entityId: this.worldEntityId });
+        }
         this.world?.unregisterEntity(this);
         this.world = undefined;
     }

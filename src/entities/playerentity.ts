@@ -51,8 +51,16 @@ export class PlayerEntity extends Entity {
             pitch,
         });
     }
-    public despawn() {
-        super.despawn();
+    public despawn(broadcast = true) {
+        if (broadcast && this.world && this.server) {
+            const broadcaster = new Broadcaster({
+                server: this.server,
+                packetId: PacketIds.DespawnPlayer,
+                criteria: combineCriteria(criterias.sameWorld(this), criterias.notSelf(this.player.connection)),
+            });
+            broadcaster.broadcast({ entityId: this.worldEntityId });
+        }
+        super.despawn(false);
     }
 }
 export default PlayerEntity;
