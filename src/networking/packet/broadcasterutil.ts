@@ -7,7 +7,11 @@ export const criterias = {
     sameWorld: (source: Entity | World) => {
         return (target: Connection): boolean => {
             if (source instanceof Entity) {
-                return new Boolean((source.world && target.player?.entity?.world) && target.player?.entity?.world === source.world).valueOf();
+                return new Boolean(
+                    source.world &&
+                        target.player?.entity?.world &&
+                        target.player?.entity?.world === source.world
+                ).valueOf();
             }
             return target.player?.entity?.world === source;
         };

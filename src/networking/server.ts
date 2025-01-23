@@ -10,6 +10,8 @@ import type { Player } from "player/player";
 import type pino from "pino";
 import { getSimpleLogger } from "utility/logger";
 import type WorldManager from "data/worlds/worldmanager";
+import { ServiceRegistry } from "utility/serviceregistry";
+import type { ServiceMap } from "servercontext";
 
 export interface SocketData {
     connection: Connection;
@@ -27,13 +29,12 @@ export class Connection {
     protected receivedBuffer: ArrayBufferSink;
     protected toSendBuffer: ArrayBufferSink;
     public packetCooldown: Cooldown = { count: 0 };
-    
+
     constructor(
         public readonly socket: Socket<SocketData>,
         public readonly id: number,
         public readonly protocols: Record<number, Protocol>,
-        public readonly worldManager: WorldManager,
-        public readonly server: Server
+        public readonly serviceRegistry: ServiceRegistry<ServiceMap>
     ) {
         this.logger = getSimpleLogger(`Connection ${id}`);
         const sinkSettings = {
@@ -129,7 +130,7 @@ export class Connection {
 
         // Process packet
         const packet = this.protocol.packets[id as PacketIds] as Packet<any>;
-        if (!packet?.receive) throw new Error(`Invalid packet ${id}`);
+        if (!packet?.receive) throw new Error(`Invalid packet ${id}: ${data}`);
 
         const receivablePacket = packet as ReceivablePacket<any>;
         const size = receivablePacket.size;
@@ -177,21 +178,21 @@ export class Server {
     public connectionCount = 0;
     public stopped = false;
     public readonly logger = getSimpleLogger("Server");
-    protected _connections = new Map<number, WeakRef<Connection>>();
 
-    constructor(public readonly protocols: Record<number, Protocol>) {}
+    public connections = new Map<number, WeakRef<Connection>>();
 
-    public get connections() {
-        return Object.freeze(new Map(this._connections));
-    }
+    constructor(
+        public readonly protocols: Record<number, Protocol>,
+        public readonly serviceRegistry: ServiceRegistry<ServiceMap>
+    ) {}
 
     cleanConnections() {
-        for (const [id, connection] of this._connections) {
-            if (!connection.deref()) this._connections.delete(id);
+        for (const [id, connection] of this.connections) {
+            if (!connection.deref()) this.connections.delete(id);
         }
     }
 
-    start(host: string, port: number, worldManager: WorldManager) {
+    start(host: string, port: number) {
         this.host = host;
         this.port = port;
 
@@ -204,7 +205,7 @@ export class Server {
                         socket.data.connection?.bufferIncoming(
                             new Uint8Array(data)
                         );
-                        if (socket.data.connection) 
+                        if (socket.data.connection)
                             socket.data.connection.packetCooldown.count++;
                     } catch {
                         socket.end();
@@ -230,11 +231,10 @@ export class Server {
                                 socket,
                                 id,
                                 this.protocols,
-                                worldManager,
-                                this
+                                this.serviceRegistry
                             ),
                         };
-                        this._connections.set(
+                        this.connections.set(
                             id,
                             new WeakRef(socket.data.connection)
                         );

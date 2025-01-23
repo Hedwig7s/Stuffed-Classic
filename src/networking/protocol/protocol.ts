@@ -42,7 +42,6 @@ export interface Protocol {
         [PacketIds.ChatMessage]: BidirectionalPacket<ChatMessagePacketData>;
         [PacketIds.DisconnectPlayer]: SendablePacket<DisconnectPlayerPacketData>;
         [PacketIds.UpdateUserType]: SendablePacket<UpdateUserTypePacketData>;
-
     };
 
     checkIdentifier(identifier: Uint8Array): boolean;

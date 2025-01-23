@@ -1,3 +1,5 @@
+import type { Chatroom } from "chat/chatroom";
+import ChatMessage from "chat/message";
 import PlayerEntity from "entities/playerentity";
 import { PacketIds } from "networking/packet/packet";
 import { assertPacket } from "networking/packet/utilities";
@@ -10,6 +12,7 @@ export interface PlayerOptions {
     name: string;
     fancyName?: string;
     hasEntity?: boolean;
+    defaultChatroom?: Chatroom;
 }
 
 export class Player {
@@ -18,6 +21,19 @@ export class Player {
     public fancyName: string;
     public entity?: PlayerEntity;
     public logger: pino.Logger;
+    protected _defaultChatroom?: Chatroom;
+    public get defaultChatroom() {
+        return this._defaultChatroom;
+    }
+    public set defaultChatroom(chatroom: Chatroom | undefined) {
+        if (this._defaultChatroom && this.connection) {
+            this._defaultChatroom.removeMember(this.connection);
+        }
+        this._defaultChatroom = chatroom;
+        if (chatroom && this.connection) {
+            chatroom.addMember(this.connection);
+        }
+    }
     public get protocol() {
         return this.connection?.protocol;
     }
@@ -114,6 +130,33 @@ export class Player {
         await this.spawnSelf();
         this.logger.trace("Player entity spawned");
     }
+    public async chat(message: string | ChatMessage, chatroom?: Chatroom) {
+        chatroom = chatroom ?? this.defaultChatroom;
+        if (!chatroom) return;
+        const formattedMessage = `&f${this.fancyName}&f: {message}`;
+        if (message instanceof ChatMessage)
+            message.message = formattedMessage.replace(
+                "{message}",
+                message.message
+            );
+        else
+            message = new ChatMessage(
+                formattedMessage.replace("{message}", message)
+            );
+        await chatroom.sendMessage(message);
+    }
+    public async sendMessage(message: ChatMessage) {
+        if (!this.connection) return;
+        const packet = this.protocol?.packets[PacketIds.ChatMessage];
+        if (!packet || !packet.send) {
+            this.logger.warn("Could not find ChatMessage packet");
+            return;
+        }
+        for (const part of message.toParts()) {
+            await packet.send(this.connection, { entityId: 0, message: part });
+        }
+        this.logger.info(`Sent message: ${message.message}`);
+    }
     public cleanup() {
         if (this.entity) {
             this.entity.cleanup();
@@ -123,12 +166,13 @@ export class Player {
         this.connection = options.connection;
         this.name = options.name;
         this.fancyName = options.fancyName || this.name;
+        this.defaultChatroom = options.defaultChatroom;
         if (options.hasEntity ?? true) {
             this.entity = new PlayerEntity({
                 player: this,
                 name: this.name,
                 fancyName: this.fancyName,
-                server: this.connection?.server,
+                server: this.connection?.serviceRegistry.get("server"),
             });
         }
         this.logger = getSimpleLogger(`Player ${this.name}`);

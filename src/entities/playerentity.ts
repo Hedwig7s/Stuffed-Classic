@@ -22,11 +22,19 @@ export class PlayerEntity extends Entity {
         if (!this.player.connection) return;
         await this.player.spawn();
     }
-    public move(position: EntityPosition, broadcast = true, replicatedMovement = false) {
-        super.move(position, (this.player.connection == undefined) && broadcast);
+    public move(
+        position: EntityPosition,
+        broadcast = true,
+        replicatedMovement = false
+    ) {
+        super.move(position, this.player.connection == undefined && broadcast);
         if (!broadcast || !this.player.connection || !this.server) return;
         let criteria;
-        if (replicatedMovement) criteria = combineCriteria(criterias.sameWorld(this), criterias.notSelf(this.player.connection));
+        if (replicatedMovement)
+            criteria = combineCriteria(
+                criterias.sameWorld(this),
+                criterias.notSelf(this.player.connection)
+            );
         else criteria = criterias.sameWorld(this);
         const broadcaster = new Broadcaster<PositionAndOrientationPacketData>({
             criteria: criteria,

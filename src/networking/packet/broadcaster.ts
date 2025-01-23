@@ -1,13 +1,15 @@
 import type { Packet, PacketIds } from "networking/packet/packet";
 import type { Connection, Server } from "networking/server";
 import type { PacketData } from "./packetdata";
+type XOR<T, U> =
+    | (T & { [K in keyof U]?: never })
+    | (U & { [K in keyof T]?: never });
 
-export interface BroadcastOptions<T> {
+export type BroadcastOptions<T> = {
     packetId: PacketIds;
     modifier?: (data: Omit<T, "id">, target: Connection) => Omit<T, "id">;
     criteria?: (target: Connection) => boolean;
-    server: Server;
-}
+} & XOR<{ server: Server }, { connections: Map<number, WeakRef<Connection>> }>;
 
 export class Broadcaster<T extends PacketData> {
     public readonly packetId: PacketIds;
@@ -16,18 +18,24 @@ export class Broadcaster<T extends PacketData> {
         target: Connection
     ) => Omit<T, "id">;
     public readonly criteria?: (target: Connection) => boolean;
-    public readonly server: Server;
+    public readonly connections: Map<number, WeakRef<Connection>>;
 
-    constructor({ packetId, modifier, criteria, server }: BroadcastOptions<T>) {
+    constructor({
+        packetId,
+        modifier,
+        criteria,
+        server,
+        connections,
+    }: BroadcastOptions<T>) {
         this.packetId = packetId;
         this.modifier = modifier;
         this.criteria = criteria;
-        this.server = server;
+        this.connections = connections ?? server.connections;
     }
 
     public broadcast(data: Omit<T, "id">) {
         const promises: Promise<void>[] = [];
-        for (const ref of this.server.connections.values()) {
+        for (const ref of this.connections.values()) {
             const connection = ref.deref();
             if (!connection) continue;
             try {

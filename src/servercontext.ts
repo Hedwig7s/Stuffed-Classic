@@ -9,6 +9,8 @@ import EntityPosition from "datatypes/entityposition";
 import Server from "networking/server";
 import { EntityRegistry } from "entities/entityregistry";
 import type { Protocol } from "networking/protocol/protocol";
+import { ServiceRegistry } from "utility/serviceregistry";
+import { Chatroom } from "chat/chatroom";
 
 export interface ConfigRecord {
     server: Config<typeof DEFAULT_CONFIGS.server>;
@@ -19,8 +21,15 @@ export interface ServerContext {
     config: ConfigRecord;
     server: Server;
     entityRegistry: EntityRegistry;
+    globalChatroom: Chatroom;
     protocols: Record<number, Protocol>;
+    serviceRegistry: ServiceRegistry<ServiceMap>;
 }
+
+export type ServiceMap = Omit<
+    ServerContext,
+    "serviceRegistry" | "protocols" | "config"
+>;
 
 export function getConfigRecord(): ConfigRecord {
     return {
@@ -34,11 +43,13 @@ export function getConfigRecord(): ConfigRecord {
 }
 
 export async function getServerContext(): Promise<ServerContext> {
+    const serviceRegistry = new ServiceRegistry<ServiceMap>();
     const configRecord: ConfigRecord = getConfigRecord();
     for (const config of Object.values(configRecord)) {
         config.loadSync();
     }
     const worldManager = new WorldManager({ autosave: true });
+    serviceRegistry.register("worldManager", worldManager);
     const defaultWorld = await World.fromFileWithDefault(
         {
             filePath: pathlib.join(
@@ -57,8 +68,12 @@ export async function getServerContext(): Promise<ServerContext> {
     );
     worldManager.setDefaultWorld(defaultWorld);
 
-    const server = new Server(PROTOCOLS);
+    const server = new Server(PROTOCOLS, serviceRegistry);
+    serviceRegistry.register("server", server);
     const entityRegistry = new EntityRegistry();
+    serviceRegistry.register("entityRegistry", entityRegistry);
+    const globalChatroom = new Chatroom("Global");
+    serviceRegistry.register("globalChatroom", globalChatroom);
 
     const serverContext: ServerContext = {
         worldManager,
@@ -66,6 +81,8 @@ export async function getServerContext(): Promise<ServerContext> {
         server,
         entityRegistry,
         protocols: PROTOCOLS,
+        serviceRegistry,
+        globalChatroom,
     };
     return serverContext;
 }

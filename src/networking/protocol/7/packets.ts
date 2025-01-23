@@ -60,6 +60,8 @@ export const identificationPacket7 =
                 name: sanitizeNetworkString(decoded.name),
                 fancyName: sanitizeNetworkString(decoded.name),
                 connection: connection,
+                defaultChatroom:
+                    connection.serviceRegistry.get("globalChatroom"),
             });
             connection.player = player;
             if (!clientPacket.send) {
@@ -71,11 +73,12 @@ export const identificationPacket7 =
                 keyOrMotd: "A stuffed classic server",
                 userType: 0,
             });
-            if (!connection.worldManager.defaultWorld) {
+            const worldManager = connection.serviceRegistry.get("worldManager");
+            if (!worldManager?.defaultWorld) {
                 throw new Error("Default world not set");
             }
             player.entity
-                ?.spawn(connection.worldManager.defaultWorld)
+                ?.spawn(worldManager.defaultWorld)
                 .catch(connection.onError.bind(connection));
         },
     });
@@ -270,10 +273,12 @@ export const chatMessagePacket7 = createBidirectionalPacket({
     parser: new StructParserBuilder<ChatMessagePacketData>()
         .bigEndian()
         .uint8("id")
+        .int8("entityId")
         .string("message", STRING_OPTIONS)
         .build(),
     async receive(connection: Connection, data: Uint8Array) {
-        //
+        const decoded = this.parser.decode(data);
+        connection.player?.chat(sanitizeNetworkString(decoded.message));
     },
 });
 
@@ -307,7 +312,8 @@ export const PACKETS = {
     [PacketIds.SetBlockServer]: setBlockServerPacket7,
     [PacketIds.SpawnPlayer]: spawnPlayerPacket7,
     [PacketIds.PositionAndOrientation]: positionAndOrientationPacket7,
-    [PacketIds.PositionAndOrientationUpdate]: positionAndOrientationUpdatePacket7,
+    [PacketIds.PositionAndOrientationUpdate]:
+        positionAndOrientationUpdatePacket7,
     [PacketIds.PositionUpdate]: positionUpdatePacket7,
     [PacketIds.OrientationUpdate]: orientationUpdatePacket7,
     [PacketIds.DespawnPlayer]: despawnPlayerPacket7,
