@@ -56,8 +56,12 @@ export const identificationPacket7 =
                 PacketIds.Identification
             );
             const decoded = this.parser.decode(data);
-            const playerRegistry = connection.serviceRegistry.get("playerRegistry");
-            if (playerRegistry && playerRegistry.has(sanitizeNetworkString(decoded.name))) {
+            const playerRegistry =
+                connection.serviceRegistry.get("playerRegistry");
+            if (
+                playerRegistry &&
+                playerRegistry.has(sanitizeNetworkString(decoded.name))
+            ) {
                 connection.disconnectWithReason("Duplicate player name");
                 return;
             }

@@ -56,7 +56,10 @@ export class PlayerEntity extends Entity {
             const broadcaster = new Broadcaster({
                 server: this.server,
                 packetId: PacketIds.DespawnPlayer,
-                criteria: combineCriteria(criterias.sameWorld(this), criterias.notSelf(this.player.connection)),
+                criteria: combineCriteria(
+                    criterias.sameWorld(this),
+                    criterias.notSelf(this.player.connection)
+                ),
             });
             broadcaster.broadcast({ entityId: this.worldEntityId });
         }

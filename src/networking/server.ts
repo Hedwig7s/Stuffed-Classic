@@ -65,7 +65,7 @@ export class Connection {
             if (this.closed) clearInterval(checkCooldown);
             if (this.packetCooldown.count > 50) {
                 this.logger.warn("Packet flood detected");
-                this.disconnectWithReason("Too much data!",100);
+                this.disconnectWithReason("Too much data!", 100);
             }
             this.packetCooldown.count = 0;
         }, 1000);
@@ -163,7 +163,7 @@ export class Connection {
     disconnectWithReason(reason = "Disconnected", timeout = 1000) {
         const packet = this.protocol?.packets[PacketIds.DisconnectPlayer];
         if (packet) {
-            packet.send(this, {reason}).catch(this.close.bind(this));
+            packet.send(this, { reason }).catch(this.close.bind(this));
         }
         setTimeout(() => {
             if (!this.closed) this.close();
