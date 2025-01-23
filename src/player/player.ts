@@ -167,6 +167,9 @@ export class Player {
         }
         this.logger.info(`Sent message: ${message.message}`);
     }
+    public disconnect(reason = "Disconnected", timeout = 1000) {
+        this.connection?.disconnectWithReason(reason, timeout);
+    }
     public destroy() {
         this.destroyed = true;
         this.emitter.emit("destroy");
