@@ -134,4 +134,4 @@ dist
 temp/
 bun.lockb
 /worlds/
-config/
+/config/
