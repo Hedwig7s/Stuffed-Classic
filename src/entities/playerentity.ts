@@ -4,7 +4,10 @@ import Entity, { type EntityOptions } from "entities/entity";
 import { Broadcaster } from "networking/packet/broadcaster";
 import { combineCriteria, criterias } from "networking/packet/broadcasterutil";
 import { PacketIds } from "networking/packet/packet";
-import type { DespawnPlayerPacketData, PositionAndOrientationPacketData } from "networking/packet/packetdata";
+import type {
+    DespawnPlayerPacketData,
+    PositionAndOrientationPacketData,
+} from "networking/packet/packetdata";
 import Player from "player/player";
 
 export interface PlayerEntityOptions extends EntityOptions {

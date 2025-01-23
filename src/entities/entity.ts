@@ -1,5 +1,8 @@
 import type World from "data/worlds/world";
-import type { DespawnPlayerPacketData, PositionAndOrientationPacketData } from "networking/packet/packetdata";
+import type {
+    DespawnPlayerPacketData,
+    PositionAndOrientationPacketData,
+} from "networking/packet/packetdata";
 import EntityPosition from "datatypes/entityposition";
 import { EntityRegistry } from "entities/entityregistry";
 import { Broadcaster } from "networking/packet/broadcaster";
