@@ -257,7 +257,7 @@ export class Config<T extends ConfigData = ConfigData> {
     public async load() {
         const path = this.getPath();
         if (!(await exists(path))) {
-            const found = this.checkForOtherFormats();
+            const found = await this.checkForOtherFormats();
             if (!found) {
                 this.save();
             }
