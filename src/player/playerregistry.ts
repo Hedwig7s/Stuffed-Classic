@@ -2,17 +2,20 @@ import { DestroySubscriptionManager } from "utility/destroysubscriptionmanager";
 import type Player from "./player";
 
 export class PlayerRegistry {
-    public players = new Map<string, Player>();
+    protected readonly _players = new Map<string, Player>();
+    public get players() {
+        return Object.freeze(new Map(this._players));
+    }
     protected destroySubscriptions = new DestroySubscriptionManager<string>(
         "destroy"
     );
     register(player: Player) {
-        if (this.players.has(player.name)) {
+        if (this._players.has(player.name)) {
             throw new Error("Player was already registered, or name is taken");
         }
-        this.players.set(player.name, player);
+        this._players.set(player.name, player);
         const destroySubscription = () => {
-            if (this.players.has(player.name)) {
+            if (this._players.has(player.name)) {
                 this.unregister(player);
             }
         };
@@ -23,19 +26,20 @@ export class PlayerRegistry {
         );
     }
     unregister(player: Player) {
-        if (this.players.get(player.name) !== player) {
+        if (this._players.get(player.name) !== player) {
             throw new Error("Different player with same name was registered");
         }
-        this.players.delete(player.name);
+        this._players.delete(player.name);
         this.destroySubscriptions.unsubscribe(player.name, player.emitter);
     }
     get(name: string) {
-        return this.players.get(name);
+        return this._players.get(name);
     }
     has(player: string | Player) {
         if (typeof player === "string") {
-            return this.players.has(player);
+            return this._players.has(player);
         }
-        return this.players.get(player.name) === player;
+        return this._players.get(player.name) === player;
     }
+
 }

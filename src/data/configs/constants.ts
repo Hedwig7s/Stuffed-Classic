@@ -7,3 +7,8 @@ export const DEFAULT_CONFIGS = {
 export const PROTOCOLS = {
     [0x07]: (await import("networking/protocol/7/protocol")).protocol7,
 };
+
+export const METADATA = {
+    version: "v0.1.0-alpha",
+    softwareName: "Stuffed-Classic",
+};

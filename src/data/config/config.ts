@@ -1,4 +1,4 @@
-import { readFile, writeFile, exists, mkdir } from "fs/promises";
+import { exists, mkdir } from "fs/promises";
 import { join as joinPath } from "path";
 import {
     handlers,
@@ -7,8 +7,6 @@ import {
 import { CONFIG_PATH } from "data/configs/constants";
 import type pino from "pino";
 import { getSimpleLogger } from "utility/logger";
-import { unlink } from "fs/promises";
-import { existsSync, readFileSync } from "fs";
 
 export type ConfigData = Record<string | symbol, any>;
 export type ConfigObject<T extends ConfigData> = T & {
@@ -119,7 +117,7 @@ const reservedKeys = ["version", "lastUpdated"];
 
 export class Config<T extends ConfigData = ConfigData> {
     private _config: ConfigObject<T>;
-    public get config() {
+    public get data() {
         return createProxy(
             this._config,
             this.defaultConfig,
@@ -205,7 +203,7 @@ export class Config<T extends ConfigData = ConfigData> {
         if (!(await exists(CONFIG_PATH))) {
             await mkdir(CONFIG_PATH);
         }
-        await writeFile(this.getPath(), encoded, { encoding: "utf-8" });
+        await Bun.write(this.getPath(), encoded);
     }
 
     protected _load(
@@ -242,16 +240,15 @@ export class Config<T extends ConfigData = ConfigData> {
         this._config = parseObj(parsed, this.defaultConfig) as ConfigObject<T>;
         if (this.autosave) this.save();
     }
-    protected checkForOtherFormats() {
+    protected async checkForOtherFormats() {
         for (const handler of Object.values(handlers)) {
             if (handler === this.fileHandler) continue;
             const path = this.getPath(handler.extension);
-            if (existsSync(path)) {
-                (async () => {
-                    const data = await readFile(path, "utf-8");
-                    this._load(data, handler);
-                    unlink(path);
-                })();
+            const file = Bun.file(path);
+            if (await file.exists()) {
+                const data = await file.text();
+                this._load(data, handler);
+                await file.delete();
                 return true;
             }
         }
@@ -266,19 +263,7 @@ export class Config<T extends ConfigData = ConfigData> {
             }
             return;
         }
-        const data = await readFile(path, "utf-8");
-        this._load(data);
-    }
-    public loadSync() {
-        const path = this.getPath();
-        if (!existsSync(path)) {
-            const found = this.checkForOtherFormats();
-            if (!found) {
-                this.save();
-            }
-            return;
-        }
-        const data = readFileSync(path, "utf-8");
+        const data = await Bun.file(path).text();
         this._load(data);
     }
 }

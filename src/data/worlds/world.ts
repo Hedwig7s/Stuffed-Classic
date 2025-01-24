@@ -83,7 +83,7 @@ export class World {
         }
         // eslint-disable-next-line @typescript-eslint/naming-convention
         const WorldParser = parserClass ?? HWorldParser;
-        const data = new Uint8Array(await fs.promises.readFile(filePath));
+        const data = await Bun.file(filePath).bytes();
         const worldParser = new WorldParser();
         const options = (await worldParser.decode(data)) as WorldOptions;
         options.name =
@@ -276,7 +276,7 @@ export class World {
         const PARSER = new HWorldParser();
         const ENCODED = await PARSER.encode(this);
         const saveDirectory =
-            saveDir ?? this.serverConfig?.config.worlds.worldDir;
+            saveDir ?? this.serverConfig?.data.worlds.worldDir;
         if (saveDirectory == null) {
             throw new Error("World save directory not set");
         }

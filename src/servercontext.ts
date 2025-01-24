@@ -12,6 +12,8 @@ import type { Protocol } from "networking/protocol/protocol";
 import { ServiceRegistry } from "utility/serviceregistry";
 import { Chatroom } from "chat/chatroom";
 import { PlayerRegistry } from "player/playerregistry";
+import { Heartbeat } from "networking/heartbeat";
+import { getSalt } from "data/salt";
 
 export interface ConfigRecord {
     server: Config<typeof DEFAULT_CONFIGS.server>;
@@ -26,11 +28,12 @@ export interface ServerContext {
     globalChatroom: Chatroom;
     protocols: Record<number, Protocol>;
     serviceRegistry: ServiceRegistry<ServiceMap>;
+    heartbeat: Heartbeat;
 }
 
 export type ServiceMap = Omit<
     ServerContext,
-    "serviceRegistry" | "protocols" | "config"
+    "serviceRegistry" | "protocols" | "config" | "heartbeat"
 >;
 
 export function getConfigRecord(): ConfigRecord {
@@ -48,21 +51,21 @@ export async function getServerContext(): Promise<ServerContext> {
     const serviceRegistry = new ServiceRegistry<ServiceMap>();
     const configRecord: ConfigRecord = getConfigRecord();
     for (const config of Object.values(configRecord)) {
-        config.loadSync();
+        await config.load();
     }
     const worldManager = new WorldManager({ autosave: true });
     serviceRegistry.register("worldManager", worldManager);
     const defaultWorld = await World.fromFileWithDefault(
         {
             filePath: pathlib.join(
-                configRecord.server.config.worlds.worldDir,
-                configRecord.server.config.worlds.defaultWorld + ".hworld"
+                configRecord.server.data.worlds.worldDir,
+                configRecord.server.data.worlds.defaultWorld + ".hworld"
             ),
             parserClass: HWorldParser,
             serverConfig: configRecord.server,
         },
         {
-            name: configRecord.server.config.worlds.defaultWorld,
+            name: configRecord.server.data.worlds.defaultWorld,
             size: new Vector3(100, 100, 100),
             spawn: new EntityPosition(0, 0, 0, 0, 0),
             serverConfig: configRecord.server,
@@ -78,6 +81,12 @@ export async function getServerContext(): Promise<ServerContext> {
     serviceRegistry.register("globalChatroom", globalChatroom);
     const playerRegistry = new PlayerRegistry();
     serviceRegistry.register("playerRegistry", playerRegistry);
+    const heartbeat = new Heartbeat(
+        await getSalt(32),
+        serviceRegistry,
+        configRecord.server,
+        configRecord.server.data.heartbeat.url,
+    );
     const serverContext: ServerContext = {
         worldManager,
         config: configRecord,
@@ -87,6 +96,7 @@ export async function getServerContext(): Promise<ServerContext> {
         serviceRegistry,
         globalChatroom,
         playerRegistry,
+        heartbeat,
     };
     return serverContext;
 }
