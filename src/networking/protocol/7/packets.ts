@@ -67,7 +67,7 @@ export const identificationPacket7 =
                 serverConfig?.data.server.verifyNames;
             const isLocalConnection = ["localhost", "127.0.0.1"].includes(
                 connection.socket.remoteAddress
-            );
+            ) || connection.socket.remoteAddress.startsWith("192.168.");
             const isUnverifiedLocalNamesAllowed =
                 serverConfig?.data.server.allowUnverifiedLocalNames;
             const isNameVerified =

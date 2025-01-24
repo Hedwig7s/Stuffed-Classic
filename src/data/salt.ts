@@ -27,7 +27,7 @@ export async function getSalt(
     if (await file.exists()) {
         const data = await file.text();
         const [salt, lastUsed] = data.split("\n");
-        if (Date.now() - parseInt(lastUsed) <= 300) {
+        if (Date.now() - parseInt(lastUsed) <= 300000) {
             return salt;
         }
     }
