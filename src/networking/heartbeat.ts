@@ -13,7 +13,7 @@ export class Heartbeat {
         public readonly serviceRegistry: ServiceRegistry<ServiceMap>,
         public readonly config: Config<typeof serverConfig>,
         public url = "https://www.classicube.net/server/heartbeat",
-        public interval = 10000,
+        public interval = 10000
     ) {}
     public running = false;
     public gameUrl = "";
@@ -44,9 +44,14 @@ export class Heartbeat {
         try {
             const response = await fetch(request);
             const body = await response.text();
-            if (response.status !== 200 ) {
-                this.logger.warn(`Heartbeat failed with status ${response.status} ${response.statusText}: ${body}`);
-            } else if (body.startsWith("{") && this.url.search("classicube.net") !== -1) {
+            if (response.status !== 200) {
+                this.logger.warn(
+                    `Heartbeat failed with status ${response.status} ${response.statusText}: ${body}`
+                );
+            } else if (
+                body.startsWith("{") &&
+                this.url.search("classicube.net") !== -1
+            ) {
                 this.logger.warn(`Heartbeat failed: ${body}`);
             } else if (body !== this.gameUrl) {
                 this.logger.info(`Game URL: ${body}`);

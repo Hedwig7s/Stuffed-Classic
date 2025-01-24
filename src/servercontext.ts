@@ -31,10 +31,7 @@ export interface ServerContext {
     heartbeat: Heartbeat;
 }
 
-export type ServiceMap = Omit<
-    ServerContext,
-    "serviceRegistry" | "protocols" | "config" | "heartbeat"
->;
+export type ServiceMap = Omit<ServerContext, "serviceRegistry">;
 
 export function getConfigRecord(): ConfigRecord {
     return {
@@ -53,6 +50,7 @@ export async function getServerContext(): Promise<ServerContext> {
     for (const config of Object.values(configRecord)) {
         await config.load();
     }
+    serviceRegistry.register("config", configRecord);
     const worldManager = new WorldManager({ autosave: true });
     serviceRegistry.register("worldManager", worldManager);
     const defaultWorld = await World.fromFileWithDefault(
@@ -85,8 +83,11 @@ export async function getServerContext(): Promise<ServerContext> {
         await getSalt(32),
         serviceRegistry,
         configRecord.server,
-        configRecord.server.data.heartbeat.url,
+        configRecord.server.data.heartbeat.url
     );
+    serviceRegistry.register("heartbeat", heartbeat);
+    serviceRegistry.register("protocols", PROTOCOLS);
+
     const serverContext: ServerContext = {
         worldManager,
         config: configRecord,

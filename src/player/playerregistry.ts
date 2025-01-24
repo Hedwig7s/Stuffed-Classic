@@ -41,5 +41,4 @@ export class PlayerRegistry {
         }
         return this._players.get(player.name) === player;
     }
-
 }

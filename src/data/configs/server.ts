@@ -6,6 +6,8 @@ export const serverConfig = {
         motd: "Welcome to Stuffed Classic",
         maxPlayers: 10,
         public: false,
+        verifyNames: true,
+        allowUnverifiedLocalNames: true,
     },
     worlds: {
         worldDir: "./worlds",
@@ -14,7 +16,7 @@ export const serverConfig = {
     heartbeat: {
         url: "https://www.classicube.net/server/heartbeat",
         enabled: true,
-    }
+    },
 };
 
 export default serverConfig;

@@ -35,6 +35,7 @@ import {
 } from "networking/packet/packetdata";
 import EntityPosition from "datatypes/entityposition";
 import { sanitizeNetworkString } from "utility/sanitizenetworkstring";
+import { MD5 } from "bun";
 
 const PROTOCOL_VERSION = 7;
 
@@ -56,18 +57,45 @@ export const identificationPacket7 =
                 PacketIds.Identification
             );
             const decoded = this.parser.decode(data);
+            const playerName = sanitizeNetworkString(decoded.name);
             const playerRegistry =
                 connection.serviceRegistry.get("playerRegistry");
+            const heartbeat = connection.serviceRegistry.get("heartbeat");
+            const serverConfig =
+                connection.serviceRegistry.get("config")?.server;
+            const isNameVerificationEnabled =
+                serverConfig?.data.server.verifyNames;
+            const isLocalConnection = ["localhost", "127.0.0.1"].includes(
+                connection.socket.remoteAddress
+            );
+            const isUnverifiedLocalNamesAllowed =
+                serverConfig?.data.server.allowUnverifiedLocalNames;
+            const isNameVerified =
+                (heartbeat?.salt &&
+                    sanitizeNetworkString(decoded.keyOrMotd).toLowerCase() ===
+                        new Bun.CryptoHasher("md5")
+                            .update(heartbeat.salt + playerName)
+                            .digest("hex")
+                            .toLowerCase()) ||
+                !heartbeat?.salt;
+
             if (
-                playerRegistry &&
-                playerRegistry.has(sanitizeNetworkString(decoded.name))
+                isNameVerificationEnabled &&
+                heartbeat?.salt &&
+                !isNameVerified
             ) {
+                if (!isUnverifiedLocalNamesAllowed || !isLocalConnection) {
+                    connection.disconnectWithReason("Unverified name");
+                    return;
+                }
+            }
+            if (playerRegistry && playerRegistry.has(playerName)) {
                 connection.disconnectWithReason("Duplicate player name");
                 return;
             }
             const player = new Player({
-                name: sanitizeNetworkString(decoded.name),
-                fancyName: sanitizeNetworkString(decoded.name),
+                name: playerName,
+                fancyName: sanitizeNetworkString(playerName),
                 connection: connection,
                 defaultChatroom:
                     connection.serviceRegistry.get("globalChatroom"),
