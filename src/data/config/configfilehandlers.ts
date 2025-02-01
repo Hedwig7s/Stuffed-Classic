@@ -1,3 +1,7 @@
+/*
+    Collection of file format handlers for encoding and decoding several config types.
+*/
+
 import json5 from "json5";
 import toml from "smol-toml";
 import yaml from "yaml";

@@ -1,3 +1,6 @@
+/*
+    World data structure and management
+*/
 import Vector3 from "datatypes/vector3";
 import EntityPosition from "datatypes/entityposition";
 import HWorldParser from "data/worlds/parsers/hworld";
@@ -5,7 +8,7 @@ import zlib from "zlib";
 import fs from "fs";
 import * as pathlib from "path";
 import type { Entity } from "entities/entity";
-import type WorldManager from "./worldmanager";
+import type WorldRegistry from "./worldregistry";
 import type WorldParser from "./parsers/base";
 import { StructuredParserBuilder } from "utility/datastruct";
 import { concatUint8Arrays } from "uint8array-extras";
@@ -49,7 +52,7 @@ export class World {
     public size: Vector3;
     public spawn: EntityPosition;
     public lastUpdate: number;
-    public manager?: WorldManager;
+    public manager?: WorldRegistry;
     public readonly entities = new Map<number, Entity>();
     public readonly logger: pino.Logger;
     public readonly serverConfig?: Config<typeof DEFAULT_CONFIGS.server>;

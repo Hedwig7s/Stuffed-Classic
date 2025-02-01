@@ -1,4 +1,4 @@
-import type { Connection } from "networking/server";
+import type { Connection } from "networking/connection";
 import type {
     IStructuredDataParser as BinaryParser,
     FixedOptions,

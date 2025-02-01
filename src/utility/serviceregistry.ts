@@ -1,3 +1,8 @@
+/*
+    Registry for services or other objects that need to be accessed by name
+    Allows for providing specific services without necessarily depending on them
+*/
+
 export class ServiceRegistry<ServiceMap extends Partial<ServiceMap> = any> {
     private services = new Map<
         keyof ServiceMap,

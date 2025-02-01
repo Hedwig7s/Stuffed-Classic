@@ -1,3 +1,7 @@
+/*
+    Encoder and decoder for structured data that allows for 2 way conversion between binary data and structured data
+*/
+
 import * as iconv from "iconv-lite";
 
 export type ValidBinaryValues = string | number | bigint | Uint8Array;

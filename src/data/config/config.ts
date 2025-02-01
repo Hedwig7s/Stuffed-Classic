@@ -1,3 +1,6 @@
+/*
+    Config wrapper for loading and saving from multiple formats
+*/
 import { exists, mkdir } from "fs/promises";
 import { join as joinPath } from "path";
 import {

@@ -1,3 +1,7 @@
+/*
+    Simple helper class to manage destroy events for a given key
+    Useful for cleaning up subscriptions when an object is destroyed
+*/
 import type { EventEmitter } from "events";
 
 export class DestroySubscriptionManager<K> {

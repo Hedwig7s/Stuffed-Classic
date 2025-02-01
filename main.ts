@@ -1,3 +1,7 @@
+/*
+    Main entry point for the server
+*/
+
 import { getServerContext } from "servercontext";
 
 export async function main() {

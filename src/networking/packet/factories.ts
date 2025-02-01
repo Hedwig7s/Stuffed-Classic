@@ -6,7 +6,7 @@ import type {
 } from "networking/packet/packet";
 import { assertParserSize } from "networking/packet/utilities";
 import type { PacketData } from "networking/packet/packetdata";
-import type { Connection } from "networking/server";
+import type { Connection } from "networking/connection";
 
 type PartialPacketSize<T extends PacketData> = Omit<Packet<T>, "size"> &
     Partial<Pick<Packet<T>, "size">>;

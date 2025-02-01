@@ -1,3 +1,6 @@
+/*
+    Simple registry class to manage player instances
+*/
 import { DestroySubscriptionManager } from "utility/destroysubscriptionmanager";
 import type Player from "./player";
 
@@ -27,7 +30,8 @@ export class PlayerRegistry {
     }
     unregister(player: Player) {
         if (this._players.get(player.name) !== player) {
-            throw new Error("Different player with same name was registered");
+            player.logger.warn("Different player with same name was registered");
+            return;
         }
         this._players.delete(player.name);
         this.destroySubscriptions.unsubscribe(player.name, player.emitter);

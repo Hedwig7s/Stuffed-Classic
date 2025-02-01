@@ -1,3 +1,7 @@
+/*
+    Wrapper around a message to format it and verify it for sending through chat
+*/
+
 export class ChatMessage {
     public message: string;
     public overflowPrefix: string;

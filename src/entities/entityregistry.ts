@@ -1,3 +1,6 @@
+/*
+    Registry for all entities in a server
+*/
 import type { Entity } from "entities/entity";
 import { DestroySubscriptionManager } from "utility/destroysubscriptionmanager";
 import { v4 as uuidv4 } from "uuid";

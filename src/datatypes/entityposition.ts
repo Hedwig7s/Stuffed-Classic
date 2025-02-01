@@ -1,3 +1,6 @@
+/*
+    A vector with added yaw and pitch values
+*/
 import { fromFixed, toFixed } from "utility/fixed";
 import Vector3 from "./vector3";
 

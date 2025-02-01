@@ -1,3 +1,6 @@
+/*
+    Main server configuration format and defaults
+*/
 export const serverConfig = {
     server: {
         host: "0.0.0.0",

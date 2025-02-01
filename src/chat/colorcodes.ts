@@ -1,3 +1,6 @@
+/*
+    Color code mappings for Minecraft chat
+*/
 export enum ColorCodes {
     Black = "&0",
     DarkBlue = "&1",

@@ -1,6 +1,9 @@
 /*
+    Parser for the HWorld world format
+*/
+/*
     hworld format:
-    All numbers are little endian
+    All numbers are lit tle endian
     4 byte uint: version (v2+)
     ascii string "HWORLD": identifier (v4+)
     2 byte uint: world size x
@@ -12,7 +15,7 @@
     1 byte uint: spawn yaw
     1 byte uint: spawn pitch
     4 byte uint: block data size (v4+)
-    rest of file (or block data size v4+): block data stored in the following format 
+    rest of file (or length specified by block data size v4+): block data stored in the following format 
         Compressed with zlib in v3
         1 byte uint: block id
         4 byte uint: number of occurences in XZY order (y is up) (same order as minecraft classic) 

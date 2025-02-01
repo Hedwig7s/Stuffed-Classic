@@ -1,5 +1,6 @@
 import type { Packet, PacketIds } from "networking/packet/packet";
-import type { Connection, Server } from "networking/server";
+import type { Server } from "networking/server";
+import type { Connection } from "networking/connection";
 import type { PacketData } from "./packetdata";
 import { DestroySubscriptionManager } from "utility/destroysubscriptionmanager";
 

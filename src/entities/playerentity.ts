@@ -1,3 +1,6 @@
+/*
+    Wrapper around entity for handling specific player entity logic
+*/
 import type World from "data/worlds/world";
 import type EntityPosition from "datatypes/entityposition";
 import Entity, { type EntityOptions } from "entities/entity";

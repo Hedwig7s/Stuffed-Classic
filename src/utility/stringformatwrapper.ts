@@ -1,3 +1,7 @@
+/*
+    A wrapper for the StructuredParserBuilder class with Lua-like format strings
+*/
+
 import { StructuredParserBuilder, type ValidBinaryValues } from "./datastruct";
 
 type ParserBuildingState = "none" | "sizedValue";

@@ -1,3 +1,7 @@
+/*
+    Simple helper functions for converting to and from fixed point numbers
+*/
+
 export function toFixed(precision: number, ...nums: number[]): number[];
 export function toFixed(precision: number, num: number): number;
 export function toFixed(

@@ -1,3 +1,6 @@
+/*
+    Block ID mapping of name to ID
+*/
 export enum BlockIds {
     air = 0,
     stone = 1,

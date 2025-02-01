@@ -1,3 +1,6 @@
+/*
+    Represents a 3D point in space
+*/
 import { fromFixed, toFixed } from "utility/fixed";
 
 export default class Vector3 {

@@ -1,8 +1,12 @@
+/*
+    Chatroom class for managing sending chat messages to all members of a chatroom
+*/
+
 import { ChatMessage } from "chat/message";
 import { Broadcaster } from "networking/packet/broadcaster";
 import { PacketIds } from "networking/packet/packet";
 import type { ChatMessagePacketData } from "networking/packet/packetdata";
-import { Connection } from "networking/server";
+import { Connection } from "networking/connection";
 import type pino from "pino";
 import { DestroySubscriptionManager } from "utility/destroysubscriptionmanager";
 import { getSimpleLogger } from "utility/logger";

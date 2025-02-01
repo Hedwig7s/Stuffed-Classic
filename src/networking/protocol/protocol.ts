@@ -1,3 +1,6 @@
+/*
+    Structure for a protocol
+*/
 import {
     PacketIds,
     type BidirectionalPacket,

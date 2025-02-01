@@ -1,14 +1,17 @@
+/*
+    Registry for worlds. Also manages autosaving
+*/
 import type { World } from "data/worlds/world";
 import { getSimpleLogger } from "utility/logger";
 import pino from "pino";
 
-export interface WorldManagerOptions {
+export interface WorldRegistryOptions {
     autosave?: boolean;
     autosaveTime?: number;
     defaultWorld?: World;
 }
 
-export class WorldManager {
+export class WorldRegistry {
     protected _worlds = new Map<string, World>();
     public autosave: boolean;
     public readonly logger: pino.Logger;
@@ -41,7 +44,7 @@ export class WorldManager {
     getWorld(name: string): World | undefined {
         return this._worlds.get(name);
     }
-    constructor({ autosave, autosaveTime, defaultWorld }: WorldManagerOptions) {
+    constructor({ autosave, autosaveTime, defaultWorld }: WorldRegistryOptions) {
         this.autosave = autosave ?? false;
         this.logger = getSimpleLogger("WorldManager");
         this.setDefaultWorld(defaultWorld);
@@ -59,4 +62,4 @@ export class WorldManager {
     }
 }
 
-export default WorldManager;
+export default WorldRegistry;

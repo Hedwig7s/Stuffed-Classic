@@ -1,3 +1,7 @@
+/*
+    Metadata for protocol version 7
+*/
+
 import type { Protocol } from "networking/protocol/protocol";
 import { PACKETS } from "./packets";
 

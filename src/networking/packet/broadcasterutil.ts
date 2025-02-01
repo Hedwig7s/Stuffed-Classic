@@ -1,5 +1,5 @@
 import Player from "player/player";
-import type { Connection } from "networking/server";
+import type { Connection } from "networking/connection";
 import type { PacketData } from "./packetdata";
 import type World from "data/worlds/world";
 import Entity from "entities/entity";

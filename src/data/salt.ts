@@ -1,3 +1,6 @@
+/*
+    Functions for generating, caching, and retrieving the salt for the server list
+*/
 import { CONFIG_PATH } from "./configs/constants";
 import crypto from "crypto";
 

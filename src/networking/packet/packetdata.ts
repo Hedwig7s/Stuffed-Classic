@@ -1,3 +1,7 @@
+/*
+    Format of packet data for each packet type.
+*/
+
 import type { PacketIds } from "networking/packet/packet";
 
 export interface PacketData {

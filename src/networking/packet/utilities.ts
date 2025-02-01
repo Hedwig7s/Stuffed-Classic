@@ -1,3 +1,6 @@
+/*
+    Couple utility functions for packets
+*/
 import type { Protocol } from "networking/protocol/protocol";
 import type { IStructuredDataParser as BinaryParser } from "utility/datastruct";
 

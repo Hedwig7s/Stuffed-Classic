@@ -1,3 +1,6 @@
+/*
+    Constants across the whole program.
+*/
 export const CONFIG_PATH = "./config";
 
 export const DEFAULT_CONFIGS = {

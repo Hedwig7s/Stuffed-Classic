@@ -1,7 +1,12 @@
+/*
+    Type definitions for the server context, which is a collection of services and other objects that are used by the server
+    Also provides a helper function for getting the server context
+*/
+
 import Config from "data/config/config";
 import { DEFAULT_CONFIGS, PROTOCOLS } from "data/configs/constants";
 import World from "data/worlds/world";
-import WorldManager from "data/worlds/worldmanager";
+import WorldRegistry from "data/worlds/worldregistry";
 import pathlib from "path";
 import HWorldParser from "data/worlds/parsers/hworld";
 import Vector3 from "datatypes/vector3";
@@ -20,7 +25,7 @@ export interface ConfigRecord {
 }
 
 export interface ServerContext {
-    worldManager: WorldManager;
+    worldManager: WorldRegistry;
     config: ConfigRecord;
     server: Server;
     entityRegistry: EntityRegistry;
@@ -51,7 +56,7 @@ export async function getServerContext(): Promise<ServerContext> {
         await config.load();
     }
     serviceRegistry.register("config", configRecord);
-    const worldManager = new WorldManager({ autosave: true });
+    const worldManager = new WorldRegistry({ autosave: true });
     serviceRegistry.register("worldManager", worldManager);
     const defaultWorld = await World.fromFileWithDefault(
         {

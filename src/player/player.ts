@@ -1,9 +1,12 @@
+/*
+    Represents a player instance in the server meant to store information and instances related to the player
+*/
 import type { Chatroom } from "chat/chatroom";
 import ChatMessage from "chat/message";
 import PlayerEntity from "entities/playerentity";
 import { PacketIds } from "networking/packet/packet";
 import { assertPacket } from "networking/packet/utilities";
-import type { Connection } from "networking/server";
+import type { Connection } from "networking/connection";
 import type pino from "pino";
 import type TypedEventEmitter from "typed-emitter";
 import EventEmitter from "events";

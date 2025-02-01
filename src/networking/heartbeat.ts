@@ -1,3 +1,6 @@
+/*
+    Send a heartbeat to the server list with the server's information
+*/
 import type { Config } from "data/config/config";
 import { METADATA } from "data/configs/constants";
 import type serverConfig from "data/configs/server";

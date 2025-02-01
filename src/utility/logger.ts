@@ -1,3 +1,7 @@
+/*
+    Simple logger factory
+*/
+
 import pino from "pino";
 import pinoCaller from "pino-caller";
 import PinoPretty from "pino-pretty";

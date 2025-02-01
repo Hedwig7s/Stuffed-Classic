@@ -11,7 +11,7 @@ import {
 import { STRING_OPTIONS } from "networking/packet/packet";
 import { assertPacket } from "networking/packet/utilities";
 import { StructuredParserBuilder as StructParserBuilder } from "utility/datastruct";
-import type { Connection } from "networking/server";
+import type { Connection } from "networking/connection";
 import Player from "player/player";
 import Vector3 from "datatypes/vector3";
 import { BlockIds } from "data/blocks";
