@@ -30,7 +30,9 @@ export class PlayerRegistry {
     }
     unregister(player: Player) {
         if (this._players.get(player.name) !== player) {
-            player.logger.warn("Different player with same name was registered");
+            player.logger.warn(
+                "Different player with same name was registered"
+            );
             return;
         }
         this._players.delete(player.name);

@@ -12,6 +12,6 @@ export const PROTOCOLS = {
 };
 
 export const METADATA = {
-    version: "v0.1.1-alpha",
+    version: "v0.2.0-alpha",
     softwareName: "Stuffed-Classic",
 };

@@ -44,7 +44,11 @@ export class WorldRegistry {
     getWorld(name: string): World | undefined {
         return this._worlds.get(name);
     }
-    constructor({ autosave, autosaveTime, defaultWorld }: WorldRegistryOptions) {
+    constructor({
+        autosave,
+        autosaveTime,
+        defaultWorld,
+    }: WorldRegistryOptions) {
         this.autosave = autosave ?? false;
         this.logger = getSimpleLogger("WorldManager");
         this.setDefaultWorld(defaultWorld);

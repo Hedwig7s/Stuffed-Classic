@@ -19,6 +19,7 @@ import { Chatroom } from "chat/chatroom";
 import { PlayerRegistry } from "player/playerregistry";
 import { Heartbeat } from "networking/heartbeat";
 import { getSalt } from "data/salt";
+import { CommandRegistry } from "commands/commandregistry";
 
 export interface ConfigRecord {
     server: Config<typeof DEFAULT_CONFIGS.server>;
@@ -33,6 +34,7 @@ export interface ServerContext {
     globalChatroom: Chatroom;
     protocols: Record<number, Protocol>;
     serviceRegistry: ServiceRegistry<ServiceMap>;
+    commandRegistry: CommandRegistry;
     heartbeat: Heartbeat;
 }
 
@@ -92,6 +94,8 @@ export async function getServerContext(): Promise<ServerContext> {
     );
     serviceRegistry.register("heartbeat", heartbeat);
     serviceRegistry.register("protocols", PROTOCOLS);
+    const commandRegistry = new CommandRegistry();
+    serviceRegistry.register("commandRegistry", commandRegistry);
 
     const serverContext: ServerContext = {
         worldManager,
@@ -103,6 +107,7 @@ export async function getServerContext(): Promise<ServerContext> {
         globalChatroom,
         playerRegistry,
         heartbeat,
+        commandRegistry,
     };
     return serverContext;
 }

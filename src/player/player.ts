@@ -11,6 +11,9 @@ import type pino from "pino";
 import type TypedEventEmitter from "typed-emitter";
 import EventEmitter from "events";
 import { getSimpleLogger } from "utility/logger";
+import type { ServiceRegistry } from "utility/serviceregistry";
+import type { ServiceMap } from "servercontext";
+import ColorCodes from "chat/colorcodes";
 
 export interface PlayerOptions {
     connection?: Connection;
@@ -18,12 +21,21 @@ export interface PlayerOptions {
     fancyName?: string;
     hasEntity?: boolean;
     defaultChatroom?: Chatroom;
+    serviceRegistry?: ServiceRegistry<ServiceMap>;
+    defaultInterceptors?: {
+        chat?: boolean;
+    };
 }
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 type PlayerEvents = {
     destroy: () => void;
 };
+
+export interface Interceptor<T extends (...args: any[]) => any> {
+    func: T;
+    priority: number;
+}
 
 export class Player {
     public readonly connection?: Connection;
@@ -34,6 +46,18 @@ export class Player {
     public entity?: PlayerEntity;
     public logger: pino.Logger;
     public destroyed = false;
+    public serviceRegistry?: ServiceRegistry<ServiceMap>;
+    public interceptors = {
+        chat: {} as Record<
+            string,
+            Interceptor<
+                (
+                    player: Player,
+                    message: string | ChatMessage
+                ) => Promise<boolean>
+            >
+        >,
+    };
     protected _defaultChatroom?: Chatroom;
     public get defaultChatroom() {
         return this._defaultChatroom;
@@ -144,6 +168,12 @@ export class Player {
         this.logger.trace("Player entity spawned");
     }
     public async chat(message: string | ChatMessage, chatroom?: Chatroom) {
+        const interceptors = Object.values(this.interceptors.chat).sort(
+            (a, b) => a.priority - b.priority
+        );
+        for (const interceptor of interceptors) {
+            if (await interceptor.func(this, message)) return;
+        }
         chatroom = chatroom ?? this.defaultChatroom;
         if (!chatroom) return;
         const formattedMessage = `&f${this.fancyName}&f: {message}`;
@@ -158,7 +188,8 @@ export class Player {
             );
         await chatroom.sendMessage(message);
     }
-    public async sendMessage(message: ChatMessage) {
+    public async sendMessage(message: string | ChatMessage) {
+        if (typeof message === "string") message = new ChatMessage(message);
         if (!this.connection) return;
         const packet = this.protocol?.packets[PacketIds.ChatMessage];
         if (!packet || !packet.send) {
@@ -183,12 +214,14 @@ export class Player {
         this.name = options.name;
         this.fancyName = options.fancyName || this.name;
         this.defaultChatroom = options.defaultChatroom;
+        this.serviceRegistry =
+            options.serviceRegistry || this.connection?.serviceRegistry;
         if (options.hasEntity ?? true) {
             this.entity = new PlayerEntity({
                 player: this,
                 name: this.name,
                 fancyName: this.fancyName,
-                server: this.connection?.serviceRegistry.get("server"),
+                server: this.serviceRegistry?.get("server"),
             });
             const destroyListener = () => {
                 this.entity?.emitter.off("destroy", destroyListener);
@@ -197,6 +230,28 @@ export class Player {
             this.entity.emitter.on("destroy", destroyListener);
         }
         this.logger = getSimpleLogger(`Player ${this.name}`);
+        if (!options.defaultInterceptors || options.defaultInterceptors.chat) {
+            this.interceptors.chat["commands"] = {
+                priority: 0,
+                func: async (player, message) => {
+                    if (message instanceof ChatMessage)
+                        message = message.message;
+                    if (message.startsWith("/")) {
+                        const commandRegistry =
+                            this.serviceRegistry?.get("commandRegistry");
+                        if (!commandRegistry) {
+                            this.sendMessage(
+                                `${ColorCodes.Red}Couldn't find commands!`
+                            );
+                            return false;
+                        }
+                        commandRegistry.handleMessage(this, message);
+                        return true;
+                    }
+                    return false;
+                },
+            };
+        }
     }
 }
 
