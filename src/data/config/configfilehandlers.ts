@@ -6,6 +6,7 @@ import json5 from "json5";
 import toml from "smol-toml";
 import yaml from "yaml";
 import xml from "fast-xml-parser";
+import { jsonc } from "jsonc";
 
 export interface FileFormatHandler {
     handler: {
@@ -14,7 +15,7 @@ export interface FileFormatHandler {
     };
     extension: string;
 }
-type Handler = "json5" | "json" | "yaml" | "toml" | "xml";
+type Handler = "json5" | "json" | "jsonc" | "yaml" | "toml" | "xml";
 export const handlers: Record<Handler, FileFormatHandler> = {
     json5: {
         extension: "json5",
@@ -27,6 +28,13 @@ export const handlers: Record<Handler, FileFormatHandler> = {
     yaml: {
         extension: "yml",
         handler: yaml,
+    },
+    jsonc: {
+        extension: "jsonc",
+        handler: {
+            parse: jsonc.parse,
+            stringify: jsonc.stringify as typeof JSON.stringify,
+        },
     },
     toml: {
         extension: "toml",
