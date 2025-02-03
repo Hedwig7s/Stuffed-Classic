@@ -223,6 +223,7 @@ export class Player {
                 fancyName: this.fancyName,
                 server: this.serviceRegistry?.get("server"),
             });
+            this.serviceRegistry?.get("entityRegistry")?.register(this.entity);
             const destroyListener = () => {
                 this.entity?.emitter.off("destroy", destroyListener);
                 this.destroy();

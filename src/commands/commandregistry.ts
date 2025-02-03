@@ -14,7 +14,7 @@ export class CommandRegistry {
         return this._commands;
     }
     constructor(
-        public readonly serviceRegistry?: ServiceRegistry<ServiceMap>
+        public readonly serviceRegistry: ServiceRegistry<ServiceMap>
     ) {}
     public register(command: Command): void {
         if (this._commands.has(command.name.toLowerCase())) {
@@ -42,7 +42,7 @@ export class CommandRegistry {
             );
             return false;
         }
-        let status: boolean | [boolean, string];
+        let status: boolean | [boolean, string, boolean?];
         try {
             status = await command.execute(player, parts.slice(1).join(" "));
         } catch (e) {
@@ -53,12 +53,9 @@ export class CommandRegistry {
             return false;
         }
         if (status === false || (Array.isArray(status) && !status[0])) {
-            let reply = `${ColorCodes.Red}Invalid command usage`;
-            if (Array.isArray(status)) {
-                reply += `: ${status[1]}`;
+            if (Array.isArray(status) && (status[2] || status.length === 2)) {
+                player.sendMessage(status[1]);
             }
-            player.sendMessage(reply);
-            player.sendMessage(await command.help(player));
             return false;
         }
         return true;
@@ -80,8 +77,8 @@ export class CommandRegistry {
                 this.register(
                     new command({ serviceRegistry: this.serviceRegistry })
                 );
-            } catch (e) {
-                this.logger.warn(`Failed to register ${file}: ${e}`);
+            } catch (e: any) {
+                this.logger.error(`Failed to register ${file}: ${e}\n${e.stack}`);
             }
         }
     }

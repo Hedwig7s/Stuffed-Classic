@@ -115,12 +115,13 @@ export const identificationPacket7 =
                 keyOrMotd: "A stuffed classic server",
                 userType: 0,
             });
-            const worldManager = connection.serviceRegistry.get("worldManager");
-            if (!worldManager?.defaultWorld) {
+            const worldRegistry =
+                connection.serviceRegistry.get("worldRegistry");
+            if (!worldRegistry?.defaultWorld) {
                 throw new Error("Default world not set");
             }
             player.entity
-                ?.spawn(worldManager.defaultWorld)
+                ?.spawn(worldRegistry.defaultWorld)
                 .catch(connection.onError.bind(connection));
         },
     });

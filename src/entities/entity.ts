@@ -28,7 +28,7 @@ type EntityEvents = {
 };
 
 export abstract class Entity {
-    public readonly ids = new Map<EntityRegistry, string>();
+    public readonly ids = new Map<EntityRegistry, number>();
     public name: string;
     public fancyName: string;
     public worldEntityId = -1;

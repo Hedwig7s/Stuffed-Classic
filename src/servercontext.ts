@@ -26,7 +26,7 @@ export interface ConfigRecord {
 }
 
 export interface ServerContext {
-    worldManager: WorldRegistry;
+    worldRegistry: WorldRegistry;
     config: ConfigRecord;
     server: Server;
     entityRegistry: EntityRegistry;
@@ -58,8 +58,8 @@ export async function getServerContext(): Promise<ServerContext> {
         await config.load();
     }
     serviceRegistry.register("config", configRecord);
-    const worldManager = new WorldRegistry({ autosave: true });
-    serviceRegistry.register("worldManager", worldManager);
+    const worldRegistry = new WorldRegistry({ autosave: true });
+    serviceRegistry.register("worldRegistry", worldRegistry);
     const defaultWorld = await World.fromFileWithDefault(
         {
             filePath: pathlib.join(
@@ -76,7 +76,7 @@ export async function getServerContext(): Promise<ServerContext> {
             serverConfig: configRecord.server,
         }
     );
-    worldManager.setDefaultWorld(defaultWorld);
+    worldRegistry.setDefaultWorld(defaultWorld);
 
     const server = new Server(PROTOCOLS, serviceRegistry);
     serviceRegistry.register("server", server);
@@ -94,11 +94,11 @@ export async function getServerContext(): Promise<ServerContext> {
     );
     serviceRegistry.register("heartbeat", heartbeat);
     serviceRegistry.register("protocols", PROTOCOLS);
-    const commandRegistry = new CommandRegistry();
+    const commandRegistry = new CommandRegistry(serviceRegistry);
     serviceRegistry.register("commandRegistry", commandRegistry);
 
     const serverContext: ServerContext = {
-        worldManager,
+        worldRegistry,
         config: configRecord,
         server,
         entityRegistry,
