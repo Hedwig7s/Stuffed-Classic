@@ -178,11 +178,11 @@ export class Connection {
         this.logger.error(error);
         this.disconnectWithReason("Internal error");
     }
-    /** 
+    /**
      * Disconnect the client with a reason, if possible
      * @param reason The reason for the disconnection
      * @param timeout The time to wait before closing the connection
-    */
+     */
     disconnectWithReason(reason = "Disconnected", timeout = 1000) {
         const packet = this.protocol?.packets[PacketIds.DisconnectPlayer];
         if (packet) {

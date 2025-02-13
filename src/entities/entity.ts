@@ -118,7 +118,7 @@ export abstract class Entity {
      * Spawns the entity for a connection
      * @param connection The connection to spawn for
      * @returns A promise that resolves when the entity is spawned for the connection
-    */
+     */
     public spawnFor(connection: Connection): Promise<void> {
         if (this.destroyed || !this.world || this.worldEntityId === -1) {
             return Promise.resolve();

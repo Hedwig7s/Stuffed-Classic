@@ -16,7 +16,7 @@ export class EntityRegistry {
     /**
      * Adds an entity to the registry
      * @param entity The entity to register
-     * @returns 
+     * @returns
      */
     register(entity: Entity): number {
         const entityId = this.totalEntitiesRegistered++;

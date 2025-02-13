@@ -30,7 +30,10 @@ export function assertPacket<K extends keyof Protocol["packets"]>(
     if (["Sendable", "Bidirectional"].includes(type) && packet.send == null) {
         throw new Error(`Packet ${id.toString()} is not sendable`);
     }
-    if (["Receivable", "Bidirectional"].includes(type) && packet.receive == null) {
+    if (
+        ["Receivable", "Bidirectional"].includes(type) &&
+        packet.receive == null
+    ) {
         throw new Error(`Packet ${id.toString()} is not receivable`);
     }
 

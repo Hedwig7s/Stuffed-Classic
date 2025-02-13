@@ -38,7 +38,7 @@ export class PlayerRegistry {
     /**
      * Remove a player from the registry
      * @param player The player to unregister
-    */
+     */
     unregister(player: Player) {
         if (this._players.get(player.name) !== player) {
             player.logger.warn(
@@ -53,7 +53,7 @@ export class PlayerRegistry {
      * Get a player by name
      * @param name The name of the player
      * @returns The player instance, or undefined if not found
-    */
+     */
     get(name: string) {
         return this._players.get(name);
     }

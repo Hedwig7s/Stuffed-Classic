@@ -11,7 +11,7 @@ const letters =
  * Get a random cryptographically secure number between min and max
  * @param min Minimum value
  * @param max Maximum exclusive value
- * @returns 
+ * @returns
  */
 function randomCryptNumber(min: number, max: number) {
     if (min >= max) {
@@ -33,7 +33,7 @@ function randomCryptNumber(min: number, max: number) {
 /**
  * Generate a random salt
  * @param length Length of the salt
- * @returns 
+ * @returns
  */
 export function generateSalt(length = 32): string {
     const result = [];
@@ -62,7 +62,7 @@ export async function writeSalt(
  * Get the salt from the cache or generate a new one
  * @param length Length of the salt
  * @param path Path to the cached salt
- * @returns 
+ * @returns
  */
 export async function getSalt(
     length = 32,

@@ -21,7 +21,7 @@ export class Chatroom {
     protected readonly destroySubscriptions =
         new DestroySubscriptionManager<number>("close");
     public readonly logger: pino.Logger;
-    /** 
+    /**
      * Create a new chatroom
      * @param name The name of the chatroom. Mainly used for logging
      */

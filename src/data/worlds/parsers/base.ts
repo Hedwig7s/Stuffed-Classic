@@ -5,9 +5,9 @@
 import type { WorldOptions, World } from "data/worlds/world";
 /**
  * Interface for world format encoding and decoding
-*/
+ */
 export default interface WorldParser {
-    /** 
+    /**
      * Decode raw data into a WorldOptions object
      * @param data The raw data to decode
      */

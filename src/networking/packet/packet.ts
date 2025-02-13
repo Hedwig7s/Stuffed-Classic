@@ -35,7 +35,7 @@ export const FIXED_BYTE_OPTIONS: FixedOptions = {
 
 /**
  * A packet that could be sent or received over the network
-*/
+ */
 export interface Packet<T extends object> {
     /** The name of the packet. Metadata */
     readonly name: string;
@@ -45,14 +45,14 @@ export interface Packet<T extends object> {
     readonly parser: BinaryParser<any>;
     /** The size of the packet in bytes */
     readonly size: number;
-    /** 
+    /**
      * Send the packet to a connection
      * @param connection The connection to send the packet to
      * @param data The data to send
      * @returns A promise that resolves when the packet is sent
      */
     send?(connection: Connection, data: Omit<T, "id">): Promise<void>;
-    /** 
+    /**
      * Receive the packet from a connection
      * @param connection The connection to receive the packet from
      * @param data The data to receive

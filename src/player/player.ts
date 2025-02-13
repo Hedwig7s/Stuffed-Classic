@@ -198,7 +198,11 @@ export class Player {
      * @param message The message to send
      * @param chatroom The chatroom to send the message to. Defaults to the player's active chatroom
      */
-    public async chat(message: string | ChatMessage, chatroom?: Chatroom, fromClient = false) {
+    public async chat(
+        message: string | ChatMessage,
+        chatroom?: Chatroom,
+        fromClient = false
+    ) {
         const interceptors = Object.values(this.interceptors.chat).sort(
             (a, b) => a.priority - b.priority
         );
@@ -208,9 +212,12 @@ export class Player {
         chatroom = chatroom ?? this.activeChatroom;
         if (!chatroom) {
             this.logger.warn("Player has no active chatroom");
-            if (fromClient) this.sendMessage(ColorCodes.Red+"You have no active chatroom");
+            if (fromClient)
+                this.sendMessage(
+                    ColorCodes.Red + "You have no active chatroom"
+                );
             return;
-        };
+        }
         const formattedMessage = `&f${this.fancyName}&f: {message}`;
         if (message instanceof ChatMessage)
             message.message = formattedMessage.replace(
@@ -250,7 +257,7 @@ export class Player {
     }
     /**
      * Destroy the player instance
-    */
+     */
     public destroy() {
         this.destroyed = true;
         this.emitter.emit("destroy");
@@ -278,7 +285,10 @@ export class Player {
             this.entity.emitter.on("destroy", destroyListener);
         }
         this.logger = getSimpleLogger(`Player ${this.name}`);
-        if (!options.defaultInterceptors?.chat || options.defaultInterceptors.chat) {
+        if (
+            !options.defaultInterceptors?.chat ||
+            options.defaultInterceptors.chat
+        ) {
             this.interceptors.chat["commands"] = {
                 priority: 0,
                 func: async (player, message) => {

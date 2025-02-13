@@ -102,7 +102,7 @@ export async function getServerContext(): Promise<ServerContext> {
     serviceRegistry.register("playerRegistry", playerRegistry);
     const heartbeat = new Heartbeat(
         await getSalt(32),
-        serviceRegistry as ServiceRegistry, // FIXME: Shouldn't need to cast 
+        serviceRegistry as ServiceRegistry, // FIXME: Shouldn't need to cast
         configRecord.server,
         configRecord.server.data.heartbeat.url
     );

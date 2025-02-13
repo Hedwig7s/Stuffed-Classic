@@ -10,7 +10,7 @@ import { DestroySubscriptionManager } from "utility/destroysubscriptionmanager";
  */
 export type BroadcastOptions<T> = {
     packetId: PacketIds;
-    /** 
+    /**
      * A function to modify the data before sending it to a connection
      * @param data The data to modify
      * @param target The connection to send the data to
@@ -85,7 +85,10 @@ export class Broadcaster<T extends PacketData> {
      * @throws If using server for connections
      */
     public addConnection(connection: Connection) {
-        if (!this.connections) throw new Error("Using server for connections. Cannot add connection");
+        if (!this.connections)
+            throw new Error(
+                "Using server for connections. Cannot add connection"
+            );
         const destroySubscription = () => {
             this.removeConnection(connection);
         };
@@ -102,7 +105,10 @@ export class Broadcaster<T extends PacketData> {
      * @throws If using server for connections
      */
     public removeConnection(connection: Connection) {
-        if (!this.connections) throw new Error("Using server for connections. Cannot remove connection");
+        if (!this.connections)
+            throw new Error(
+                "Using server for connections. Cannot remove connection"
+            );
         this.destroySubscriptions.unsubscribe(
             connection.id,
             connection.emitter

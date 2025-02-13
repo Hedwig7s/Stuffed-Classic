@@ -1,9 +1,9 @@
 import type { EventEmitter } from "events";
 
 /**
-    * Simple helper class to manage destroy events for a given key. 
-    * Useful for cleaning up destroy subscriptions when an object is destroyed
-*/
+ * Simple helper class to manage destroy events for a given key.
+ * Useful for cleaning up destroy subscriptions when an object is destroyed
+ */
 export class DestroySubscriptionManager<K> {
     protected destroySubscriptions = new Map<K, (...args: any) => void>();
     constructor(protected eventKey: string) {}

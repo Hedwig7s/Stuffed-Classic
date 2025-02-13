@@ -26,7 +26,7 @@ export class WorldRegistry {
     }
     /**
      * Sets the default world, registering it if it is not already registered
-     * @param world 
+     * @param world
      */
     public setDefaultWorld(world: World | undefined) {
         const existing = world ? this.getWorld(world.name) : undefined;

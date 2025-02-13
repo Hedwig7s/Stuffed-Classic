@@ -83,7 +83,7 @@ export default class Vector3 {
      * Get the distance between this vector and another
      * @param v The other vector
      * @returns The distance between the two vectors
-    */
+     */
     distance(v: Vector3): number {
         return this.subtract(v).magnitude();
     }
@@ -91,7 +91,7 @@ export default class Vector3 {
      * Get the angle between this vector and another
      * @param v The other vector
      * @returns The angle between the two vectors
-    */
+     */
     angle(v: Vector3): number {
         return Math.acos(this.dot(v) / (this.magnitude() * v.magnitude()));
     }
