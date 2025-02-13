@@ -23,6 +23,11 @@ type PartialReceivablePacket<T extends PacketData> = Omit<
 > &
     Partial<Pick<ReceivablePacket<T>, "size">>;
 
+/**
+ * Create a basic packet without a sender or receiver with the given data
+ * @param obj The data for the packet
+ * @template T The type of the packet data
+ */
 export function createBasicPacket<T extends PacketData>(
     obj: PartialPacketSize<T>
 ): Packet<T> {
@@ -32,6 +37,11 @@ export function createBasicPacket<T extends PacketData>(
     } as Packet<T>;
 }
 
+/**
+ * Create a receivable packet with the given data
+ * @param obj The data for the packet
+ * @template T The type of the packet data
+ */
 export function createReceivablePacket<T extends PacketData>(
     obj: PartialReceivablePacket<T>
 ): ReceivablePacket<T> {
@@ -41,6 +51,13 @@ export function createReceivablePacket<T extends PacketData>(
     };
 }
 
+/**
+ * Basic sender for packets
+ * @param this The packet to send
+ * @param connection The connection to send the packet to
+ * @param data The data to send
+ * @template T The type of the packet data
+ */
 async function basicSender<T extends PacketData>(
     this: SendablePacket<T>,
     connection: Connection,
@@ -51,6 +68,11 @@ async function basicSender<T extends PacketData>(
     await connection.write(encoded);
 }
 
+/**
+ * Create a sendable packet with the given data
+ * @param obj The data for the packet
+ * @template T The type of the packet data
+ */
 export function createSendablePacket<T extends PacketData>(
     obj: PartialSendablePacket<T>
 ): SendablePacket<T> {
@@ -59,6 +81,11 @@ export function createSendablePacket<T extends PacketData>(
     return newObj as SendablePacket<T>;
 }
 
+/**
+ * Create a bidirectional packet with the given data
+ * @param obj The data for the packet
+ * @template T The type of the packet data
+ */
 export function createBidirectionalPacket<T extends PacketData>(
     obj: PartialReceivablePacket<T> & PartialSendablePacket<T>
 ): BidirectionalPacket<T> {

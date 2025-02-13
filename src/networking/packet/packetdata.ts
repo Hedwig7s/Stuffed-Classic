@@ -9,9 +9,13 @@ export interface PacketData {
 }
 
 export interface IdentificationPacketData extends PacketData {
+    /** Protocol version */
     protocol: number;
+    /** If receiving, username. If sending, server name. */
     name: string;
+    /** If receiving, verification key. If sending, MOTD. */
     keyOrMotd: string;
+    /** If receiving, CPE support. If sending, whether or not the user is an operator */
     userType: number;
 }
 
@@ -20,8 +24,11 @@ export type PingPacketData = PacketData;
 export type LevelInitializePacketData = PacketData;
 
 export interface LevelDataChunkPacketData extends PacketData {
+    /** Length of chunk in bytes */
     chunkLength: number;
+    /** Block of gzipped block data in xzy format with size 1024 bytes, padded with 0x00 if below */
     chunkData: Uint8Array;
+    /** Percentage of block data sent */
     percentComplete: number;
 }
 
@@ -35,15 +42,16 @@ export interface SetBlockClientPacketData extends PacketData {
     x: number;
     y: number;
     z: number;
+    /** 1 is place 0 is destroy */
     mode: number;
-    blockType: number;
+    blockId: number;
 }
 
 export interface SetBlockServerPacketData extends PacketData {
     x: number;
     y: number;
     z: number;
-    blockType: number;
+    blockId: number;
 }
 
 export interface SpawnPlayerPacketData extends PacketData {

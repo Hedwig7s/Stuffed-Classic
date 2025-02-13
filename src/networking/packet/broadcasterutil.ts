@@ -23,6 +23,11 @@ export const criterias = {
     },
 };
 
+/**
+ * Combine multiple criteria into a single criteria
+ * @param criteria The criteria to combine
+ * @returns The combined criteria
+ */
 export function combineCriteria(
     ...criteria: ((target: Connection) => boolean)[]
 ): (target: Connection) => boolean {
@@ -47,6 +52,11 @@ export const modifiers = {
     },
 };
 
+/**
+ * Apply multiple modifiers to a packet data
+ * @param modifiers The modifiers to apply
+ * @returns The combined modifier
+ */
 export function combineModifiers<T extends PacketData>(
     ...modifiers: ((data: T, target: Connection) => T)[]
 ): (data: T, target: Connection) => T {

@@ -7,6 +7,12 @@ import crypto from "crypto";
 const letters =
     "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
 
+/**
+ * Get a random cryptographically secure number between min and max
+ * @param min Minimum value
+ * @param max Maximum exclusive value
+ * @returns 
+ */
 function randomCryptNumber(min: number, max: number) {
     if (min >= max) {
         throw new Error(
@@ -18,13 +24,17 @@ function randomCryptNumber(min: number, max: number) {
     const randomBytes = crypto.randomBytes(4);
     const randomNumber = randomBytes.readUInt32BE(0);
 
-    // Scale the random number to the desired range
     const scaledRandomNumber =
         Math.floor((randomNumber / 0xffffffff) * range) + min;
 
     return scaledRandomNumber;
 }
 
+/**
+ * Generate a random salt
+ * @param length Length of the salt
+ * @returns 
+ */
 export function generateSalt(length = 32): string {
     const result = [];
     for (let i = 0; i < length; i++) {
@@ -35,6 +45,11 @@ export function generateSalt(length = 32): string {
     return result.join("");
 }
 
+/**
+ * Write the salt to a file
+ * @param salt Salt to write
+ * @param path Path to write the salt to
+ */
 export async function writeSalt(
     salt: string,
     path = `${CONFIG_PATH}/cachedsalt.txt`
@@ -43,6 +58,12 @@ export async function writeSalt(
     await file.write(`${salt}\n${Date.now()}`);
 }
 
+/**
+ * Get the salt from the cache or generate a new one
+ * @param length Length of the salt
+ * @param path Path to the cached salt
+ * @returns 
+ */
 export async function getSalt(
     length = 32,
     path = `${CONFIG_PATH}/cachedsalt.txt`

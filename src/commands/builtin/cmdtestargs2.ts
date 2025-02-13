@@ -11,35 +11,28 @@ export class CmdTestArgs2 extends Command {
     public name = "testargs2";
     public description = "Argument parser test";
     protected argumentParser: ArgumentParser<
-        [
-            Vector3,
-            Vector3,
-            EntityPosition,
-            EntityPosition,
-        ]
+        [Vector3, Vector3, EntityPosition, EntityPosition]
     >;
-    public async execute(player: Player, args: string): Promise<boolean | [boolean, string]> {
+    public async execute(
+        player: Player,
+        args: string
+    ): Promise<boolean | [boolean, string]> {
         const [success, parsed] = this.argumentParser.parse(args);
         if (!success) {
             return [false, parsed.formatted()];
         }
-        player.sendMessage(
-            `Parsed: ${parsed.join(" ")}`
-        );
+        player.sendMessage(`Parsed: ${parsed.join(" ")}`);
         return true;
     }
     public async help(player: Player) {
-        return "Argument parser test. \nUsage: " + this.argumentParser.getUsage();
+        return (
+            "Argument parser test. \nUsage: " + this.argumentParser.getUsage()
+        );
     }
     constructor(options: CommandOptions) {
         super(options);
         this.argumentParser = new ArgumentParserBuilder<
-            [
-                Vector3,
-                Vector3,
-                EntityPosition,
-                EntityPosition,
-            ]
+            [Vector3, Vector3, EntityPosition, EntityPosition]
         >()
             .vector3()
             .vector3("namedV3")

@@ -14,17 +14,21 @@ export interface SocketData {
     connection: Connection;
 }
 
+/** Events emitted by the server */
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 type ServerEvents = {
     close: () => void;
 };
 
+/**
+ * A TCP server that handles accepting connections and creating Connection instances
+ */
 export class Server {
     server?: TCPSocketListener;
     public host?: string;
     public port?: number;
     public connectionCount = 0;
-    public stopped = false;
+    public closed = false;
     public readonly logger = getSimpleLogger("Server");
     public readonly emitter =
         new EventEmitter() as TypedEventEmitter<ServerEvents>;
@@ -36,6 +40,11 @@ export class Server {
         public readonly serviceRegistry: ServiceRegistry<ServiceMap>
     ) {}
 
+    /**
+     * Starts the server
+     * @param host The host address to bind to
+     * @param port The port to bind to
+     */
     start(host: string, port: number) {
         this.host = host;
         this.port = port;
@@ -102,11 +111,14 @@ export class Server {
         this.logger.info(`Server started at ${this.host}:${this.port}`);
     }
 
+    /**
+     * Closes the server
+     */
     close() {
-        if (this.stopped) return;
+        if (this.closed) return;
         this.emitter.emit("close");
         this.server?.stop();
-        this.stopped = true;
+        this.closed = true;
         this.logger.info("Server stopped");
     }
 }

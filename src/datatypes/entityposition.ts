@@ -4,6 +4,9 @@
 import { fromFixed, toFixed } from "utility/fixed";
 import Vector3 from "./vector3";
 
+/**
+ * Represents an entity's position in the world
+ */
 export default class EntityPosition {
     protected _position: Vector3;
     protected _yaw: number;
@@ -31,18 +34,25 @@ export default class EntityPosition {
     get pitch(): number {
         return this._pitch;
     }
+    /** 
+     * Create a new EntityPosition from a Vector3
+     */
     static fromVector3(v: Vector3, yaw: number, pitch: number): EntityPosition {
         return new EntityPosition(v.x, v.y, v.z, yaw, pitch);
     }
-    static get zero(): EntityPosition {
+    static zero(): EntityPosition {
         return new EntityPosition(0, 0, 0, 0, 0);
     }
-    static get one(): EntityPosition {
+    static one(): EntityPosition {
         return new EntityPosition(1, 1, 1, 0, 0);
     }
     toString(): string {
         return `${this._position.toString()},${this._yaw},${this._pitch}`;
     }
+    /** 
+     * Convert the EntityPosition to a fixed precision. Mainly used for packets
+     * @param precision Fixed point precision
+     */
     toFixed(precision: number): EntityPosition {
         return new EntityPosition(
             ...(toFixed(
@@ -54,6 +64,10 @@ export default class EntityPosition {
             ...(toFixed(precision, this._yaw, this._pitch) as [number, number])
         );
     }
+    /** 
+     * Convert the EntityPosition from a fixed precision. Mainly used for packets
+     * @param precision Fixed point precision
+    */
     fromFixed(precision: number): EntityPosition {
         return new EntityPosition(
             ...(fromFixed(

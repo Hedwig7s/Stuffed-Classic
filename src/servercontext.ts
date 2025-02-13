@@ -21,10 +21,16 @@ import { Heartbeat } from "networking/heartbeat";
 import { getSalt } from "data/salt";
 import { CommandRegistry } from "commands/commandregistry";
 
+/**
+ * The configuration record, which contains all of the server's configuration objects
+ */
 export interface ConfigRecord {
     server: Config<typeof DEFAULT_CONFIGS.server>;
 }
 
+/**
+ * The server context, which is a collection of services and other objects that are used by the server
+ */
 export interface ServerContext {
     worldRegistry: WorldRegistry;
     config: ConfigRecord;
@@ -40,6 +46,10 @@ export interface ServerContext {
 
 export type ServiceMap = Omit<ServerContext, "serviceRegistry">;
 
+/**
+ * Get the default configuration record containing the default server configuration
+ * @returns The default configuration record
+ */
 export function getConfigRecord(): ConfigRecord {
     return {
         server: new Config({
@@ -51,6 +61,10 @@ export function getConfigRecord(): ConfigRecord {
     };
 }
 
+/**
+ * Get a default server context
+ * @returns The server context
+ */
 export async function getServerContext(): Promise<ServerContext> {
     const serviceRegistry = new ServiceRegistry<ServiceMap>();
     const configRecord: ConfigRecord = getConfigRecord();
@@ -88,7 +102,7 @@ export async function getServerContext(): Promise<ServerContext> {
     serviceRegistry.register("playerRegistry", playerRegistry);
     const heartbeat = new Heartbeat(
         await getSalt(32),
-        serviceRegistry,
+        serviceRegistry as ServiceRegistry, // FIXME: Shouldn't need to cast 
         configRecord.server,
         configRecord.server.data.heartbeat.url
     );

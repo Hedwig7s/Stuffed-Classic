@@ -10,15 +10,11 @@ import type Player from "player/player";
 export class CmdTestArgs3 extends Command {
     public name = "testargs3";
     public description = "Argument parser test";
-    protected argumentParser: ArgumentParser<
-        [
-            Entity,
-            Player,
-            World,
-            string,
-        ]
-    >;
-    public async execute(player: Player, args: string): Promise<boolean | [boolean, string]> {
+    protected argumentParser: ArgumentParser<[Entity, Player, World, string]>;
+    public async execute(
+        player: Player,
+        args: string
+    ): Promise<boolean | [boolean, string]> {
         const [success, parsed] = this.argumentParser.parse(args);
         if (!success) {
             return [false, parsed.formatted()];
@@ -29,17 +25,14 @@ export class CmdTestArgs3 extends Command {
         return true;
     }
     public async help(player: Player) {
-        return "Argument parser test. \nUsage: " + this.argumentParser.getUsage();
+        return (
+            "Argument parser test. \nUsage: " + this.argumentParser.getUsage()
+        );
     }
     constructor(options: CommandOptions) {
         super(options);
         this.argumentParser = new ArgumentParserBuilder<
-            [
-                Entity,
-                Player,
-                World,
-                string,
-            ]
+            [Entity, Player, World, string]
         >()
             .entity(this.serviceRegistry.assertGet("entityRegistry"))
             .player(this.serviceRegistry.assertGet("playerRegistry"))

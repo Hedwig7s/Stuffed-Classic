@@ -17,26 +17,40 @@ import type { ServiceMap } from "servercontext";
 import type TypedEventEmitter from "typed-emitter";
 import EventEmitter from "events";
 import type { SocketData } from "./server";
+
+/** An object defining how many of x has been seen since last checked */
 interface Cooldown {
     count: number;
 }
 
+/** Events emitted by connections */
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 type ConnectionEvents = {
     close: () => void;
 };
 
+/**
+ * Represents a connection to a client
+ */
 export class Connection {
     public closed = false;
     public protocol?: Protocol;
     public player?: Player;
     public readonly logger: pino.Logger;
+    /** Incoming data */
     protected receivedBuffer: ArrayBufferSink;
+    /** Outgoing data */
     protected toSendBuffer: ArrayBufferSink;
     public packetCooldown: Cooldown = { count: 0 };
     public readonly emitter =
         new EventEmitter() as TypedEventEmitter<ConnectionEvents>;
-
+    /**
+     * Creates a new connection
+     * @param socket The Bun TCP socket to the client
+     * @param id The unique identifier for this connection
+     * @param protocols The available protocols
+     * @param serviceRegistry Registry of services
+     */
     constructor(
         public readonly socket: Socket<SocketData>,
         public readonly id: number,
@@ -70,16 +84,19 @@ export class Connection {
         }, 1000);
     }
 
+    /** Ensure the socket is still valid */
     checkSocket() {
         if (this.socket.readyState === "closed" && !this.closed) this.close();
     }
 
+    /** Write data to the client */
     async write(data: string | ArrayBuffer | Bun.BufferSource) {
         if (this.closed) throw new Error("Connection was closed");
         this.toSendBuffer.write(data);
         await this.processOutgoing().catch(this.onError.bind(this));
     }
 
+    /** Process outgoing data, sending it to the client */
     async processOutgoing() {
         if (this.closed) return;
         const data = this.toSendBuffer.flush() as Uint8Array;
@@ -91,12 +108,13 @@ export class Connection {
             if (flushed.length > 0) this.toSendBuffer.write(flushed);
         }
     }
-
+    /** Buffer incoming data from the client */
     bufferIncoming(data: Uint8Array) {
         this.receivedBuffer.write(data);
         this.processIncoming().catch(this.onError.bind(this));
     }
 
+    /** Process incoming data from the client */
     async processIncoming() {
         const requeue = (data: Uint8Array, retry = false) => {
             const flushed = this.receivedBuffer.flush() as Uint8Array;
@@ -155,10 +173,16 @@ export class Connection {
         }
     }
 
+    /** Handle an error */
     onError(error: Error) {
         this.logger.error(error);
         this.disconnectWithReason("Internal error");
     }
+    /** 
+     * Disconnect the client with a reason, if possible
+     * @param reason The reason for the disconnection
+     * @param timeout The time to wait before closing the connection
+    */
     disconnectWithReason(reason = "Disconnected", timeout = 1000) {
         const packet = this.protocol?.packets[PacketIds.DisconnectPlayer];
         if (packet) {
@@ -168,6 +192,7 @@ export class Connection {
             if (!this.closed) this.close();
         }, timeout);
     }
+    /** Close the connection */
     close() {
         if (this.closed) return;
         this.closed = true;

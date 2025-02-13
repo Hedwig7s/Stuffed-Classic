@@ -8,6 +8,9 @@ import yaml from "yaml";
 import xml from "fast-xml-parser";
 import { jsonc } from "jsonc";
 
+/**
+ * A file format handler for encoding and decoding data formats.
+ */
 export interface FileFormatHandler {
     handler: {
         stringify: typeof JSON.stringify;
@@ -16,6 +19,10 @@ export interface FileFormatHandler {
     extension: string;
 }
 type Handler = "json5" | "json" | "jsonc" | "yaml" | "toml" | "xml";
+
+/**
+ * A collection of file format handlers for encoding and decoding several config types.
+ */
 export const handlers: Record<Handler, FileFormatHandler> = {
     json5: {
         extension: "json5",

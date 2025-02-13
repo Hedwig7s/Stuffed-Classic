@@ -1,11 +1,16 @@
-/*
-    Wrapper around a message to format it and verify it for sending through chat
-*/
-
+/**
+ * Wrapper around a message to format it and verify it for sending through chat
+ */
 export class ChatMessage {
     public message: string;
     public overflowPrefix: string;
     public maxMessageLength: number;
+    /**
+     * Create a new ChatMessage
+     * @param message The message to wrap
+     * @param overflowPrefix The prefix to add to overflowed messages
+     * @param maxMessageLength The maximum length of a message before it is split
+     */
     public constructor(
         message: string,
         overflowPrefix = "> ",
@@ -16,6 +21,11 @@ export class ChatMessage {
         this.maxMessageLength = maxMessageLength;
     }
 
+    /**
+     * Split the message into parts that are less than or equal to the max message length
+     * Also sanitizes the message for the client
+     * @returns The parts of the message
+     */
     public toParts(): string[] {
         const cleanMessage = (message: string) => {
             message = message.replace(/&$/, "");

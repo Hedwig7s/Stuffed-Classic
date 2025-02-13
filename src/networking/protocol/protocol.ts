@@ -46,6 +46,10 @@ export interface Protocol {
         [PacketIds.DisconnectPlayer]: SendablePacket<DisconnectPlayerPacketData>;
         [PacketIds.UpdateUserType]: SendablePacket<UpdateUserTypePacketData>;
     };
-
+    /**
+     * Check if the identifier is valid for this protocol
+     * @param identifier The identifier to check
+     * @returns True if the identifier is valid
+     */
     checkIdentifier(identifier: Uint8Array): boolean;
 }

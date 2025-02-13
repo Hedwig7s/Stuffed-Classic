@@ -56,7 +56,7 @@ export const identificationPacket7 =
                 connection.protocol,
                 PacketIds.Identification
             );
-            const decoded = this.parser.decode(data);
+            const decoded = this.parser.decode(data) as IdentificationPacketData;
             const playerName = sanitizeNetworkString(decoded.name);
             const playerRegistry =
                 connection.serviceRegistry.get("playerRegistry");
@@ -98,7 +98,7 @@ export const identificationPacket7 =
                 name: playerName,
                 fancyName: sanitizeNetworkString(playerName),
                 connection: connection,
-                defaultChatroom:
+                chatroom:
                     connection.serviceRegistry.get("globalChatroom"),
             });
             connection.player = player;
@@ -186,23 +186,23 @@ export const setBlockClientPacket7 =
             .int16("y")
             .int16("z")
             .uint8("mode")
-            .uint8("blockType")
+            .uint8("blockId")
             .build(),
         async receive(connection: Connection, data: Uint8Array) {
-            const decoded = this.parser.decode(data);
+            const decoded = this.parser.decode(data) as SetBlockClientPacketData;
             const player = connection.player;
             if (!player) return;
             const world = player.entity?.world;
             if (!world) return;
-            if (!BlockIds[decoded.blockType]) {
+            if (!BlockIds[decoded.blockId]) {
                 connection.logger.warn(
-                    `Illegal block id: ${decoded.blockType}`
+                    `Illegal block id: ${decoded.blockId}`
                 );
                 return;
             }
             world.setBlock(
                 new Vector3(decoded.x, decoded.y, decoded.z),
-                decoded.mode === 1 ? decoded.blockType : BlockIds.air
+                decoded.mode === 1 ? decoded.blockId : BlockIds.air
             );
         },
     });
@@ -217,7 +217,7 @@ export const setBlockServerPacket7 =
             .int16("x")
             .int16("y")
             .int16("z")
-            .uint8("blockType")
+            .uint8("blockId")
             .build(),
     });
 
@@ -251,7 +251,7 @@ export const positionAndOrientationPacket7 = createBidirectionalPacket({
         .uint8("pitch")
         .build(),
     async receive(connection: Connection, data: Uint8Array) {
-        const decoded = this.parser.decode(data);
+        const decoded = this.parser.decode(data) as PositionAndOrientationPacketData;
         const player = connection.player;
         if (!player) return;
         const { x, y, z, yaw, pitch } = decoded;
@@ -320,8 +320,8 @@ export const chatMessagePacket7 = createBidirectionalPacket({
         .string("message", STRING_OPTIONS)
         .build(),
     async receive(connection: Connection, data: Uint8Array) {
-        const decoded = this.parser.decode(data);
-        connection.player?.chat(sanitizeNetworkString(decoded.message));
+        const decoded = this.parser.decode(data) as ChatMessagePacketData;
+        connection.player?.chat(sanitizeNetworkString(decoded.message), undefined, true);
     },
 });
 

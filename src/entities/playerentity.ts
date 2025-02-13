@@ -13,11 +13,19 @@ import type {
 } from "networking/packet/packetdata";
 import Player from "player/player";
 
+/**
+ * Options for creating a player entity
+ */
 export interface PlayerEntityOptions extends EntityOptions {
+    /** The player associated with this entity */
     player: Player;
 }
 
+/**
+ * Wrapper around entity for handling specific player entity logic
+ */
 export class PlayerEntity extends Entity {
+    /** The player associated with this entity */
     public readonly player: Player;
     constructor(options: PlayerEntityOptions) {
         super(options);
@@ -35,6 +43,7 @@ export class PlayerEntity extends Entity {
     ) {
         super.move(position, this.player.connection == undefined && broadcast);
         if (!broadcast || !this.player.connection || !this.server) return;
+        if (!this.world) return;
         let criteria;
         if (replicatedMovement)
             criteria = combineCriteria(

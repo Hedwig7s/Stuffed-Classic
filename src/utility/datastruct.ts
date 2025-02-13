@@ -9,19 +9,26 @@ export type ValidBinaryValues = string | number | bigint | Uint8Array;
 export type StructDataFormat<T> = {
     [K in keyof T as T[K] extends ValidBinaryValues ? K : never]: T[K];
 };
+/**
+ * Basic format entry for data
+ */
 interface Format<T extends StructDataFormat<T>> {
     name: string;
     key: keyof T;
     size: number;
 }
 export interface IntOptions {
+    /** Integer size in bytes */
     size: number;
+    /** Whether the integer is signed */
     signed: boolean;
 }
 type IntFormat<T extends StructDataFormat<T>> = Format<T> & IntOptions;
 export interface StringOptions {
     type: "fixed" | "zero-terminated";
+    /** If type is fixed, the length of the string */
     length?: number;
+    /** Which character encoding to use. Defaults to utf-8 */
     encoding?: string;
 }
 type StringFormat<T extends StructDataFormat<T>> = Format<T> &
@@ -29,34 +36,46 @@ type StringFormat<T extends StructDataFormat<T>> = Format<T> &
         encoding: string;
     };
 export interface FixedOptions {
+    /** Integer size in bytes */
     size: number;
+    /** Fixed point precision */
     point: number;
+    /** Whether the number is signed */
     signed: boolean;
 }
 type FixedFormat<T extends StructDataFormat<T>> = Format<T> & FixedOptions;
 
 export interface RawOptions {
+    /** Size of the raw data in bytes */
     size: number;
 }
 type RawFormat<T extends StructDataFormat<T>> = Format<T> & RawOptions;
 
 export interface PaddingOptions {
+    /** Size of the padding in bytes */
     size: number;
 }
 
 type PaddingFormat<T extends StructDataFormat<T>> = Format<T> & PaddingOptions;
 
-const nativeEndianness: "big" | "little" = (() => {
+export const nativeEndianness: "big" | "little" = (() => {
     const b = new ArrayBuffer(4);
     const a = new Uint32Array(b);
     const c = new Uint8Array(b);
     a[0] = 0xdeadbeef;
     if (c[0] == 0xef) return "little";
     if (c[0] == 0xde) return "big";
-    throw new Error("unknown endianness");
+    return "little";
 })();
 
-function decodeInt(
+/**
+ * Decodes an integer from a byte array
+ * @param format The IntFormat object
+ * @param data The byte array to decode
+ * @param endianness The endianness of the integer
+ * @returns The decoded integer
+ */
+export function decodeInt(
     format: IntFormat<any>,
     data: Uint8Array,
     endianness: "big" | "little"
@@ -77,7 +96,14 @@ function decodeInt(
     return value;
 }
 
-function encodeInt(
+/**
+ * Encodes an integer to a byte array
+ * @param format The IntFormat object
+ * @param value The integer to encode
+ * @param endianness The endianness of the integer
+ * @returns The encoded byte array
+ */
+export function encodeInt(
     format: IntFormat<any>,
     value: number | bigint,
     endianness: "big" | "little"
@@ -109,12 +135,18 @@ function encodeInt(
     return out;
 }
 
-class StructuredDataParser<T extends StructDataFormat<T>> {
+/** Parser for structured binary data */
+export class StructuredDataParser<T extends StructDataFormat<T>> {
     public readonly formatList: Format<T>[];
     protected endianness: "little" | "big";
 
-    public readonly size: number | undefined; // Undefined = variable size
+    /** If undefined the final size is unknown (e.g. zero terminated string) */
+    public readonly size: number | undefined;
 
+    /**
+     * Creates a new structured data parser
+     * @param formatList The format list
+     */
     constructor(formatList: Format<T>[]) {
         this.formatList = formatList;
         this.endianness = nativeEndianness;
@@ -129,6 +161,15 @@ class StructuredDataParser<T extends StructDataFormat<T>> {
         this.size = size;
     }
 
+    /**
+     * Decodes binary data into structured data
+     * @param inputData The binary data to decode
+     * @returns The structured data
+     * @throws If the data is invalid
+     * @throws If the data is incomplete
+     * @throws If a value is out of range
+     * @throws If the data is too large
+     */
     decode(inputData: Uint8Array | string | ArrayLike<number>): T {
         let data: Uint8Array;
         if (typeof inputData == "string") data = Uint8Array.from(inputData);
@@ -315,7 +356,12 @@ class StructuredDataParser<T extends StructDataFormat<T>> {
 
         return decoded as T;
     }
-    validate(data: T): [boolean, string?] {
+    /**
+     * Validates the data against the format
+     * @param data The data to validate
+     * @returns Whether the data is valid and an error message if not
+     */
+    validate(data: T): [true] | [false, string] {
         for (const format of this.formatList) {
             const value = data[format.key as keyof T];
             if (value == null && !format.name.endsWith("endian")) {
@@ -324,10 +370,19 @@ class StructuredDataParser<T extends StructDataFormat<T>> {
         }
         return [true];
     }
+    /**
+     * Encodes structured data into binary data
+     * @param data The structured data to encode
+     * @returns The binary data
+     * @throws If the data does not match the format
+     */
     encode(data: T): Uint8Array {
         let out = new Uint8Array(256);
         let offset = 0;
         this.endianness = nativeEndianness;
+        /** Checks that the data can fit into the buffer otherwise expands it
+         * @param add The number of bytes to add
+         */
         function checkSize(add: number) {
             if (offset + add >= out.length) {
                 let newLength = out.length;
@@ -524,8 +579,6 @@ class StructuredDataParser<T extends StructDataFormat<T>> {
         return out.subarray(0, offset);
     }
 }
-export type IStructuredDataParser<T extends StructDataFormat<T>> =
-    StructuredDataParser<T>;
 export class StructuredParserBuilder<T extends StructDataFormat<T>> {
     private formatList: Format<any>[] = [];
 

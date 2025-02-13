@@ -4,15 +4,22 @@
 import type { Entity } from "entities/entity";
 import { DestroySubscriptionManager } from "utility/destroysubscriptionmanager";
 
+/**
+ * A registry for all entities in a server instance.
+ */
 export class EntityRegistry {
     protected _entities = new Map<number, Entity>();
     protected destroySubscriptions = new DestroySubscriptionManager<number>(
         "destroy"
     );
-    protected entityCount = 0;
-
-    register(entity: Entity, id?: number): number {
-        const entityId = id ?? this.entityCount++;
+    protected totalEntitiesRegistered = 0;
+    /**
+     * Adds an entity to the registry
+     * @param entity The entity to register
+     * @returns 
+     */
+    register(entity: Entity): number {
+        const entityId = this.totalEntitiesRegistered++;
 
         if (this._entities.has(entityId)) {
             throw new Error("Entity id was already registered");
@@ -35,6 +42,10 @@ export class EntityRegistry {
         return entityId;
     }
 
+    /**
+     * Unregisters an entity from the registry
+     * @param entity The entity or id to unregister
+     */
     unregister(entity: Entity | number) {
         if (typeof entity === "number") {
             if (!this.has(entity)) {
@@ -60,6 +71,11 @@ export class EntityRegistry {
         entity.ids.delete(this);
     }
 
+    /**
+     * Checks if an entity is registered
+     * @param id The entity or id to check
+     * @returns Whether the entity is registered
+     */
     has(id: number | Entity): boolean {
         if (typeof id === "number") {
             return this._entities.has(id);
@@ -68,6 +84,11 @@ export class EntityRegistry {
         return entityId != null && this._entities.has(entityId);
     }
 
+    /**
+     * Gets an entity by id
+     * @param id The id of the entity to get
+     * @returns The entity, or undefined if not found
+     */
     get(id: number): Entity | undefined {
         return this._entities.get(id);
     }

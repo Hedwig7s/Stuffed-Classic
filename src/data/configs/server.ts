@@ -1,4 +1,4 @@
-/*
+/**
     Main server configuration format and defaults
 */
 export const serverConfig = {

@@ -1,4 +1,4 @@
-/*
+/**
     Block ID mapping of name to ID
 */
 export enum BlockIds {
@@ -54,8 +54,13 @@ export enum BlockIds {
     obsidian = 49,
 }
 
+/**
+ * Data for which blocks need to be replaced when sending to specific versions
+ */
 export const BLOCK_VERSION_REPLACEMENTS = {
+    /** Default block if a block is unsupported */
     default: BlockIds.stone,
+    /** Highest block id supported by each protocol */
     replacementInfo: {
         [1]: {
             max: BlockIds.leaves,
@@ -73,6 +78,7 @@ export const BLOCK_VERSION_REPLACEMENTS = {
             max: BlockIds.leaves,
         },
     },
+    /** Block replacements if a block is incompatible with the protocol */
     replacements: {
         [BlockIds.sponge]: BlockIds.sand,
         [BlockIds.glass]: BlockIds.gravel,

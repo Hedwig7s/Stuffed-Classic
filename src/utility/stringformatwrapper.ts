@@ -12,6 +12,14 @@ const INT_CHARS = {
     l: 4,
 };
 
+/**
+ * Process a format string
+ * @param format The format string
+ * @param encoding The encoding to use for strings
+ * @param builder The structured parser builder to use
+ * @returns The structured parser builder
+ * @throws {Error} If the format string is invalid
+ */
 function processFormat(
     format: string,
     encoding = "utf-8",
@@ -116,12 +124,21 @@ function processFormat(
     return builder;
 }
 
+/**
+ * A wrapper for the StructuredParserBuilder class with Lua-like format strings
+ */
 export class FormatStringParserWrapper {
     public readonly size: number | undefined;
     public readonly format: string;
     public readonly encoding: string;
     protected parser: ReturnType<StructuredParserBuilder<any>["build"]>;
 
+    /**
+     * Create a new FormatStringParserWrapper
+     * @param format The format string
+     * @param encoding The encoding to use for strings
+     * @throws {Error} If the format string is invalid
+     */
     constructor(format: string, encoding = "utf-8") {
         const builder = processFormat(format, encoding);
         this.parser = builder.build();
@@ -130,6 +147,11 @@ export class FormatStringParserWrapper {
         this.encoding = encoding;
     }
 
+    /**
+     * Pack data into binary
+     * @param data The data to pack
+     * @returns The packed binary data
+     */
     public pack(...data: ValidBinaryValues[]): Uint8Array {
         return this.parser.encode(
             data.reduce(
@@ -142,6 +164,11 @@ export class FormatStringParserWrapper {
         );
     }
 
+    /**
+     * Unpack binary data
+     * @param data The binary data to unpack
+     * @returns The unpacked data
+     */
     public unpack(
         data: Uint8Array | string | ArrayLike<number>
     ): ValidBinaryValues[] {
@@ -151,10 +178,24 @@ export class FormatStringParserWrapper {
     }
 }
 
+/**
+ * Pack data into binary using a format string
+ * @param format The format string
+ * @param data The data to pack
+ * @returns The packed binary data
+ * @throws {Error} If the format string is invalid
+ */
 export function pack(format: string, ...data: ValidBinaryValues[]) {
     return new FormatStringParserWrapper(format).pack(...data);
 }
 
+/**
+ * Unpack binary data using a format string
+ * @param format The format string
+ * @param data The binary data to unpack
+ * @returns The unpacked data
+ * @throws {Error} If the format string is invalid
+ */
 export function unpack(
     format: string,
     data: Uint8Array | string | ArrayLike<number>

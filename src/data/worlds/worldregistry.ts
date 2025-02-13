@@ -5,12 +5,17 @@ import type { World } from "data/worlds/world";
 import { getSimpleLogger } from "utility/logger";
 import pino from "pino";
 
+/** Options for creating a world registry */
 export interface WorldRegistryOptions {
+    /** Whether to automatically save worlds in the registry. Defaults to true */
     autosave?: boolean;
+    /** Autosave interval in milliseconds */
     autosaveTime?: number;
+    /** Default world for the registry. Can be set later */
     defaultWorld?: World;
 }
 
+/** Registry for worlds */
 export class WorldRegistry {
     protected _worlds = new Map<string, World>();
     public autosave: boolean;
@@ -19,6 +24,10 @@ export class WorldRegistry {
     public get defaultWorld() {
         return this._defaultWorld;
     }
+    /**
+     * Sets the default world, registering it if it is not already registered
+     * @param world 
+     */
     public setDefaultWorld(world: World | undefined) {
         const existing = world ? this.getWorld(world.name) : undefined;
         if (world === undefined || existing === world) {
@@ -31,6 +40,12 @@ export class WorldRegistry {
         this.addWorld(world);
         this._defaultWorld = world;
     }
+
+    /**
+     * Adds a world to the registry
+     * @param world
+     * @throws Error if a world with the same name is already registered
+     */
     addWorld(world: World) {
         if (this._worlds.get(world.name)) {
             throw new Error("Duplicate world");
@@ -41,6 +56,11 @@ export class WorldRegistry {
     get worlds(): ReadonlyMap<string, World> {
         return Object.freeze(new Map(this._worlds));
     }
+    /**
+     * Gets a world from the registry
+     * @param name
+     * @returns The world with the given name, or undefined if it does not exist
+     */
     getWorld(name: string): World | undefined {
         return this._worlds.get(name);
     }

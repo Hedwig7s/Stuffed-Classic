@@ -19,35 +19,50 @@ import PlayerEntity from "entities/playerentity";
 import type { DEFAULT_CONFIGS } from "data/configs/constants";
 import type { Config } from "data/config/config";
 
+/**
+ * Options for creating a new world instance.
+ */
 export interface WorldOptions {
     name: string;
+    /** 1D array of block ids in xzy order */
     blocks?: Uint8Array;
     size: Vector3;
     spawn: EntityPosition;
     serverConfig?: Config<typeof DEFAULT_CONFIGS.server>;
 }
 
+/**
+ * Options for loading a world from a file.
+ */
 export interface WorldFromFileOptions {
     filePath: string;
     serverConfig?: Config<typeof DEFAULT_CONFIGS.server>;
     parserClass?: new () => WorldParser;
 }
 
+/**
+ * Calculates the index of a block in the 1D blocks array based on its 3D position.
+ *
+ * @param position - The 3D position of the block.
+ * @param size - The 3D size of the world.
+ * @returns The calculated index corresponding to the block's position.
+ */
 export function getBlockIndex(position: Vector3, size: Vector3): number {
     const { x, y, z } = position;
     return x + z * size.x + y * size.x * size.z;
 }
 
-export interface CachedPack {
-    data: Uint8Array;
-    lastUpdate: number;
-}
-
+/**
+ * Represents a world and provides methods for managing its data,
+ * including block manipulation, entity registration, file I/O, and compression.
+ */
 export class World {
     protected _blocks: Uint8Array;
+
     public get blocks(): Uint8Array {
         return new Uint8Array(this._blocks);
     }
+
     public readonly name: string;
     public size: Vector3;
     public spawn: EntityPosition;
@@ -76,6 +91,13 @@ export class World {
         this.serverConfig = config;
     }
 
+    /**
+     * Creates a World instance from a file.
+     *
+     * @param options - Options for loading the world from a file.
+     * @returns A promise that resolves with the loaded World instance.
+     * @throws Error if the specified file does not exist.
+     */
     static async fromFile({
         filePath,
         parserClass,
@@ -96,6 +118,15 @@ export class World {
         options.serverConfig = config;
         return new World(options);
     }
+
+    /**
+     * Creates a basic world with default block settings.
+     * Blocks below or equal to half the world's height are filled with block ID 1, others with 0.
+     *
+     * @param options - Options for creating a basic world. The spawn point is optional.
+     * @returns A promise that resolves with the newly created basic World instance.
+     * @deprecated Will be replaced with a generator-based system.
+     */
     // TODO: Replace with generators
     static async basicWorld({
         name,
@@ -128,6 +159,13 @@ export class World {
         return world;
     }
 
+    /**
+     * Attempts to load a world from a file, falling back to creating a basic world if loading fails.
+     *
+     * @param fileOptions - Options for loading the world from a file.
+     * @param fallbackOptions - Fallback options for creating a basic world if file loading fails.
+     * @returns A promise that resolves with the resulting World instance.
+     */
     static async fromFileWithDefault(
         fileOptions: WorldFromFileOptions,
         fallbackOptions: Omit<
@@ -142,10 +180,18 @@ export class World {
         }
     }
 
+    /**
+     * Compresses the world data into a client-compatible format.
+     *
+     * @param protocolVersion - The protocol version to encode the data.
+     * @param callback - Optional callback invoked for each data chunk with the chunk data, its size, and the current percentage completed.
+     * @returns A promise that resolves with the concatenated compressed data as a Uint8Array.
+     * @throws Error if gzip compression times out.
+     */
     async pack(
         protocolVersion: number,
         callback?: (data: Uint8Array, size: number, percent: number) => void
-    ) {
+    ): Promise<Uint8Array> {
         const gzip = zlib.createGzip();
         const chunkLength = 1024;
         const levelSize = this.size.product();
@@ -238,12 +284,25 @@ export class World {
         return concatUint8Arrays(buffers).subarray(0, length);
     }
 
-    setBlock(position: Vector3, blockId: number) {
+    /**
+     * Sets the block at the specified position to the given block ID.
+     * Notifies player entities about the change via network packets.
+     *
+     * @param position - The 3D position where the block will be set.
+     * @param blockId - The block ID to set at the given position.
+     */
+    async setBlock(position: Vector3, blockId: number): Promise<void> {
         const index = getBlockIndex(position, this.size);
         this._blocks[index] = blockId;
         this.lastUpdate = Date.now();
+        let cooldown = 0;
         for (const entity of this.entities.values()) {
-            // Perhaps replace with events at a later point
+            cooldown++;
+            if (cooldown === 10) {
+                await Promise.resolve();
+                cooldown = 0;
+            }
+            // TODO: Perhaps replace with events at a later point
             if (entity instanceof PlayerEntity) {
                 const playerEntity = entity as PlayerEntity;
                 const player = playerEntity.player;
@@ -265,17 +324,31 @@ export class World {
                     x: position.x,
                     y: position.y,
                     z: position.z,
-                    blockType: blockId,
+                    blockId: blockId,
                 });
             }
         }
     }
-    getBlock(position: Vector3) {
+
+    /**
+     * Retrieves the block ID at the specified position.
+     *
+     * @param position - The 3D position of the block.
+     * @returns The block ID at the given position.
+     */
+    getBlock(position: Vector3): number {
         const index = getBlockIndex(position, this.size);
         return this._blocks[index];
     }
 
-    async save(saveDir?: string) {
+    /**
+     * Saves the current world state to disk.
+     *
+     * @param saveDir - Optional directory to save the world file. If not provided, the directory is taken from the server configuration.
+     * @returns A promise that resolves when the world has been saved.
+     * @throws Error if the save directory is not set.
+     */
+    async save(saveDir?: string): Promise<void> {
         const PARSER = new HWorldParser();
         const ENCODED = await PARSER.encode(this);
         const saveDirectory =
@@ -290,7 +363,14 @@ export class World {
         );
     }
 
-    registerEntity(entity: Entity) {
+    /**
+     * Registers an entity in the world.
+     * The entity is assigned the first available ID in the range [0, 127].
+     *
+     * @param entity - The entity to register.
+     * @throws Error if the maximum number of entities is exceeded.
+     */
+    registerEntity(entity: Entity): void {
         for (let i = 0; i < 128; i++) {
             const current = this.entities.get(i);
             if (current == null || current.destroyed) {
@@ -302,7 +382,12 @@ export class World {
         throw new Error("Too many entities");
     }
 
-    unregisterEntity(entity: Entity) {
+    /**
+     * Unregisters an entity from the world.
+     *
+     * @param entity - The entity to unregister.
+     */
+    unregisterEntity(entity: Entity): void {
         if (
             entity.worldEntityId < 0 ||
             !this.entities.has(entity.worldEntityId) ||

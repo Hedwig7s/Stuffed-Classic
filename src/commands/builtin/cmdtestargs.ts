@@ -20,21 +20,24 @@ export class CmdTestArgs extends Command {
             number,
             number,
             number,
-            string
+            string,
         ]
     >;
-    public async execute(player: Player, args: string): Promise<boolean | [boolean, string]> {
+    public async execute(
+        player: Player,
+        args: string
+    ): Promise<boolean | [boolean, string]> {
         const [success, parsed] = this.argumentParser.parse(args);
         if (!success) {
             return [false, parsed.formatted()];
         }
-        player.sendMessage(
-            `Parsed: ${parsed.join(" ")}`
-        );
+        player.sendMessage(`Parsed: ${parsed.join(" ")}`);
         return true;
     }
     public async help(player: Player) {
-        return "Argument parser test. \nUsage: " + this.argumentParser.getUsage();
+        return (
+            "Argument parser test. \nUsage: " + this.argumentParser.getUsage()
+        );
     }
     constructor(options: CommandOptions) {
         super(options);
@@ -48,7 +51,7 @@ export class CmdTestArgs extends Command {
                 number,
                 number,
                 number,
-                string
+                string,
             ]
         >()
             .string()

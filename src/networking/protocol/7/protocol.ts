@@ -9,7 +9,11 @@ export const protocol7: Protocol = {
     version: 7,
     packets: PACKETS,
     checkIdentifier(identifier: Uint8Array): boolean {
-        return identifier[1] === this.version;
+        try {
+            return identifier[1] === this.version;
+        } catch {
+            return false;
+        }
     },
 };
 export default protocol7;

@@ -1,4 +1,4 @@
-/*
+/**
     Color code mappings for Minecraft chat
 */
 export enum ColorCodes {

@@ -7,6 +7,11 @@ import pinoCaller from "pino-caller";
 import PinoPretty from "pino-pretty";
 import * as pathLib from "path";
 
+/**
+ * Create a simple logger
+ * @param name The name of the logger
+ * @returns The logger
+ */
 export function getSimpleLogger(name?: string) {
     const level = process.env.LOG_LEVEL?.toLowerCase() || "info";
     const debug =

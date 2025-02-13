@@ -5,6 +5,9 @@
 import { exists, mkdir } from "node:fs/promises";
 import { getServerContext } from "servercontext";
 
+/**
+ * Main entry point for the server
+ */
 export async function main() {
     const serverContext = await getServerContext();
     const server = serverContext.server;
