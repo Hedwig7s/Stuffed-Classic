@@ -258,7 +258,7 @@ export class World {
                 levelSize: number;
             }>()
                 .bigEndian()
-                .int32("levelSize")
+                .uint32("levelSize")
                 .build();
             gzip.write(headerParser.encode({ levelSize: levelSize }));
             let i = 0;

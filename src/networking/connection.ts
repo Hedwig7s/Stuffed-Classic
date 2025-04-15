@@ -44,6 +44,7 @@ export class Connection {
     public packetCooldown: Cooldown = { count: 0 };
     public readonly emitter =
         new EventEmitter() as TypedEventEmitter<ConnectionEvents>;
+    public lastDataReceived = Date.now();
     /**
      * Creates a new connection
      * @param socket The Bun TCP socket to the client
@@ -82,11 +83,23 @@ export class Connection {
             }
             this.packetCooldown.count = 0;
         }, 1000);
+        const checkSocket = setInterval(() => {
+            if (this.closed) clearInterval(checkSocket);
+            this.checkSocket();
+        }, 1000);
     }
 
     /** Ensure the socket is still valid */
     checkSocket() {
-        if (this.socket.readyState === "closed" && !this.closed) this.close();
+        if (this.socket.readyState === "closed" && !this.closed) {
+            this.close();
+            return;
+        }
+        if (Date.now() - this.lastDataReceived > 10000) {
+            this.logger.warn("Connection timeout");
+            this.disconnectWithReason("Connection timeout");
+            return;
+        }
     }
 
     /** Write data to the client */
@@ -110,6 +123,8 @@ export class Connection {
     }
     /** Buffer incoming data from the client */
     bufferIncoming(data: Uint8Array) {
+        if (this.closed) return;
+        this.lastDataReceived = Date.now();
         this.receivedBuffer.write(data);
         this.processIncoming().catch(this.onError.bind(this));
     }

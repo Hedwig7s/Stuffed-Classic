@@ -3,7 +3,7 @@
 */
 /*
     hworld format:
-    All numbers are lit tle endian
+    All numbers are little endian
     4 byte uint: version (v2+)
     ascii string "HWORLD": identifier (v4+)
     2 byte uint: world size x

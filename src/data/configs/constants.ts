@@ -23,6 +23,6 @@ export const PROTOCOLS = {
  * The metadata for the server.
  */
 export const METADATA = {
-    version: "v0.2.0-alpha",
+    version: "v0.2.1-alpha",
     softwareName: "Stuffed-Classic",
 };

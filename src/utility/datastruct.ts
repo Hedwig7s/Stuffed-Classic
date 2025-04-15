@@ -1,7 +1,6 @@
 /*
     Encoder and decoder for structured data that allows for 2 way conversion between binary data and structured data
 */
-
 import * as iconv from "iconv-lite";
 
 export type ValidBinaryValues = string | number | bigint | Uint8Array;
@@ -67,6 +66,13 @@ export const nativeEndianness: "big" | "little" = (() => {
     if (c[0] == 0xde) return "big";
     return "little";
 })();
+
+class OutOfRangeError extends Error {
+    constructor(message: string) {
+        super(message);
+        this.name = "OutOfRangeError";
+    }
+}
 
 /**
  * Decodes an integer from a byte array
@@ -161,6 +167,19 @@ export class StructuredDataParser<T extends StructDataFormat<T>> {
         this.size = size;
     }
 
+    verifyDecoded(decoded: Partial<T>): asserts decoded is T {
+        for (const format of this.formatList) {
+            if (
+                decoded[format.key] == null &&
+                !format.name.endsWith("endian")
+            ) {
+                throw new Error(
+                    `Incomplete data: Key ${String(format.key)} not found`
+                );
+            }
+        }
+    }
+
     /**
      * Decodes binary data into structured data
      * @param inputData The binary data to decode
@@ -172,189 +191,226 @@ export class StructuredDataParser<T extends StructDataFormat<T>> {
      */
     decode(inputData: Uint8Array | string | ArrayLike<number>): T {
         let data: Uint8Array;
-        if (typeof inputData == "string") data = Uint8Array.from(inputData);
+        if (typeof inputData == "string")
+            data = new TextEncoder().encode(inputData);
         else if (!(inputData instanceof Uint8Array))
             data = new Uint8Array(inputData);
         else data = inputData;
         const decoded: Partial<T> = {};
         let offset = 0;
         this.endianness = nativeEndianness;
+
         for (const format of this.formatList) {
-            switch (format.name) {
-                case "native-endian": {
-                    this.endianness = nativeEndianness;
-                    break;
-                }
-                case "little-endian": {
-                    this.endianness = "little";
-                    break;
-                }
-                case "big-endian": {
-                    this.endianness = "big";
-                    break;
-                }
-                case "integer": {
-                    const intFormat = format as IntFormat<T>;
-                    if (offset + intFormat.size - 1 >= data.length) {
-                        throw new Error("Integer out of range");
-                    }
-                    const slice = data.subarray(
-                        offset,
-                        (offset += intFormat.size)
-                    );
-                    let result: bigint | number = decodeInt(
-                        intFormat,
-                        slice,
-                        this.endianness
-                    );
-                    if (
-                        result <= Number.MAX_SAFE_INTEGER &&
-                        result >= Number.MIN_SAFE_INTEGER
-                    ) {
-                        result = Number(result);
-                    }
-                    decoded[intFormat.key] = result as T[keyof T];
-                    break;
-                }
-                case "string": {
-                    const stringFormat = format as StringFormat<T>;
-                    const decode = function (slice: Uint8Array): string {
-                        return new TextDecoder(stringFormat.encoding).decode(
-                            slice
-                        );
-                    };
-                    switch (stringFormat.type) {
-                        case "zero-terminated": {
-                            const slice = data.subarray(offset);
-                            let size = 0;
-                            while (true) {
-                                if (size >= slice.length) {
-                                    throw new Error(
-                                        "Unterminated zero-terminated string"
-                                    );
-                                }
-                                const b = slice[size];
-                                if (b === 0) {
-                                    decoded[stringFormat.key] = decode(
-                                        slice.subarray(0, size)
-                                    ) as T[keyof T];
-                                    offset += size + 1;
-                                    break;
-                                }
-                                size++;
-                            }
-                            break;
-                        }
-                        case "fixed": {
-                            if (stringFormat.length == null) {
-                                throw new Error(
-                                    "Fixed string length must be specified"
-                                );
-                            }
-                            if (
-                                offset + stringFormat.length - 1 >=
-                                data.length
-                            ) {
-                                throw new Error("Fixed string out of range");
-                            }
-                            const slice = data.subarray(
-                                offset,
-                                (offset += stringFormat.length)
-                            );
-                            decoded[stringFormat.key] = decode(
-                                slice
-                            ) as T[keyof T];
-                            break;
-                        }
-                        default: {
-                            throw new Error(
-                                `Unknown string type: ${stringFormat.type}`
-                            );
-                        }
-                    }
-                    break;
-                }
-                case "float": {
-                    if (offset + 4 - 1 >= data.length) {
-                        throw new Error("Float out of range");
-                    }
-                    decoded[format.key] = new DataView(data.buffer).getFloat32(
-                        offset,
-                        this.endianness === "little"
-                    ) as T[keyof T];
-                    offset += 4;
-                    break;
-                }
-                case "double": {
-                    if (offset + 8 - 1 >= data.length) {
-                        throw new Error("Double out of range");
-                    }
-                    decoded[format.key] = new DataView(data.buffer).getFloat64(
-                        offset,
-                        this.endianness === "little"
-                    ) as T[keyof T];
-                    offset += 8;
-                    break;
-                }
-                case "fixed": {
-                    const fixedFormat = format as FixedFormat<T>;
-                    if (offset + fixedFormat.size - 1 >= data.length) {
-                        throw new Error("Fixed out of range");
-                    }
-                    const slice = data.subarray(
-                        offset,
-                        (offset += fixedFormat.size)
-                    );
-                    const value = decodeInt(
-                        { ...fixedFormat, name: "integer" },
-                        slice,
-                        this.endianness
-                    );
-                    if (value > Number.MAX_SAFE_INTEGER) {
-                        throw new Error("Fixed point too large");
-                    }
-                    const divisor = Math.pow(2, fixedFormat.point);
-                    const result = Number(value) / divisor;
-                    if (!Number.isFinite(result)) {
-                        throw new Error("Resulting float is too large");
-                    }
-                    decoded[fixedFormat.key] = result as T[keyof T];
-                    break;
-                }
-                case "raw": {
-                    const rawFormat = format as RawFormat<T>;
-                    if (offset + rawFormat.size - 1 >= data.length) {
-                        throw new Error("Fixed out of range");
-                    }
-                    const slice = data.subarray(
-                        offset,
-                        (offset += rawFormat.size)
-                    );
-                    decoded[rawFormat.key] = slice as T[keyof T];
-                    break;
-                }
-                case "padding": {
-                    const paddingFormat = format as PaddingFormat<T>;
-                    offset += paddingFormat.size;
-                    break;
-                }
-                default: {
-                    throw new Error(`Unknown format: ${format.name}`);
-                }
-            }
+            offset = this.decodeDataFormat(format, data, decoded, offset);
         }
+
+        this.verifyDecoded(decoded);
+
+        return decoded;
+    }
+
+    /**
+     * Decodes binary data into structured data
+     * @param inputData The binary data to decode
+     * @returns The structured data
+     * @throws If the data is invalid
+     * @throws If the data is incomplete
+     * @throws If a value is out of range
+     * @throws If the data is too large
+     */
+    async decodeWaitForData(inputData: ArrayBuffer, pollInterval = 5): Promise<T> {
+        const decoded: Partial<T> = {};
+        let offset = 0;
+        this.endianness = nativeEndianness;
+
         for (const format of this.formatList) {
-            if (
-                decoded[format.key] == null &&
-                !format.name.endsWith("endian")
-            ) {
-                throw new Error(
-                    `Incomplete data: Key ${String(format.key)} not found`
-                );
+            while (true) {
+                try {
+                    offset = this.decodeDataFormat(format, new Uint8Array(inputData), decoded, offset);
+                }
+                catch (e) {
+                    if (e instanceof OutOfRangeError) {
+                        const oldLength = inputData.byteLength;
+                        while (format.size == null ? inputData.byteLength == oldLength : inputData.byteLength < offset + format.size) {
+                            await new Promise((resolve) => setTimeout(resolve, pollInterval));
+                        }
+                        continue;
+                    }
+                    throw e;
+                }
+                break;
             }
         }
 
-        return decoded as T;
+        this.verifyDecoded(decoded);
+        
+        return decoded;
+    }
+
+    protected decodeDataFormat(
+        format: Format<T>,
+        data: Uint8Array,
+        decoded: Partial<T>,
+        offset: number
+    ): number {
+        switch (format.name) {
+            case "native-endian": {
+                this.endianness = nativeEndianness;
+                break;
+            }
+            case "little-endian": {
+                this.endianness = "little";
+                break;
+            }
+            case "big-endian": {
+                this.endianness = "big";
+                break;
+            }
+            case "integer": {
+                const intFormat = format as IntFormat<T>;
+                if (offset + intFormat.size - 1 >= data.length) {
+                    throw new OutOfRangeError("Integer out of range");
+                }
+                const slice = data.subarray(
+                    offset,
+                    (offset += intFormat.size)
+                );
+                let result: bigint | number = decodeInt(
+                    intFormat,
+                    slice,
+                    this.endianness
+                );
+                if (
+                    result <= Number.MAX_SAFE_INTEGER &&
+                    result >= Number.MIN_SAFE_INTEGER
+                ) {
+                    result = Number(result);
+                }
+                decoded[intFormat.key] = result as T[keyof T];
+                break;
+            }
+            case "string": {
+                const stringFormat = format as StringFormat<T>;
+                const decode = function (slice: Uint8Array): string {
+                    return new TextDecoder(stringFormat.encoding).decode(slice);
+                };
+                switch (stringFormat.type) {
+                    case "zero-terminated": {
+                        const slice = data.subarray(offset);
+                        let size = 0;
+                        while (true) {
+                            if (size >= slice.length) {
+                                throw new OutOfRangeError(
+                                    "Unterminated zero-terminated string"
+                                );
+                            }
+                            const b = slice[size];
+                            if (b === 0) {
+                                decoded[stringFormat.key] = decode(
+                                    slice.subarray(0, size)
+                                ) as T[keyof T];
+                                offset += size + 1;
+                                break;
+                            }
+                            size++;
+                        }
+                        break;
+                    }
+                    case "fixed": {
+                        if (stringFormat.length == null) {
+                            throw new Error(
+                                "Fixed string length must be specified"
+                            );
+                        }
+                        if (offset + stringFormat.length - 1 >= data.length) {
+                            throw new OutOfRangeError("Fixed string out of range");
+                        }
+                        const slice = data.subarray(
+                            offset,
+                            (offset += stringFormat.length)
+                        );
+                        decoded[stringFormat.key] = decode(
+                            slice
+                        ) as T[keyof T];
+                        break;
+                    }
+                    default: {
+                        throw new Error(
+                            `Unknown string type: ${stringFormat.type}`
+                        );
+                    }
+                }
+                break;
+            }
+            case "float": {
+                if (offset + 4 - 1 >= data.length) {
+                    throw new OutOfRangeError("Float out of range");
+                }
+                decoded[format.key] = new DataView(data.buffer).getFloat32(
+                    offset,
+                    this.endianness === "little"
+                ) as T[keyof T];
+                offset += 4;
+                break;
+            }
+            case "double": {
+                if (offset + 8 - 1 >= data.length) {
+                    throw new OutOfRangeError("Double out of range");
+                }
+                decoded[format.key] = new DataView(data.buffer).getFloat64(
+                    offset,
+                    this.endianness === "little"
+                ) as T[keyof T];
+                offset += 8;
+                break;
+            }
+            case "fixed": {
+                const fixedFormat = format as FixedFormat<T>;
+                if (offset + fixedFormat.size - 1 >= data.length) {
+                    throw new OutOfRangeError("Fixed out of range");
+                }
+                const slice = data.subarray(
+                    offset,
+                    (offset += fixedFormat.size)
+                );
+                const value = decodeInt(
+                    { ...fixedFormat, name: "integer" },
+                    slice,
+                    this.endianness
+                );
+                if (value > Number.MAX_SAFE_INTEGER) {
+                    throw new Error("Fixed point too large");
+                }
+                const divisor = Math.pow(2, fixedFormat.point);
+                const result = Number(value) / divisor;
+                if (!Number.isFinite(result)) {
+                    throw new Error("Resulting float is too large");
+                }
+                decoded[fixedFormat.key] = result as T[keyof T];
+                break;
+            }
+            case "raw": {
+                const rawFormat = format as RawFormat<T>;
+                if (offset + rawFormat.size - 1 >= data.length) {
+                    throw new OutOfRangeError("Fixed out of range");
+                }
+                const slice = data.subarray(
+                    offset,
+                    (offset += rawFormat.size)
+                );
+                decoded[rawFormat.key] = slice as T[keyof T];
+                break;
+            }
+            case "padding": {
+                const paddingFormat = format as PaddingFormat<T>;
+                offset += paddingFormat.size;
+                break;
+            }
+            default: {
+                throw new Error(`Unknown format: ${format.name}`);
+            }
+        }
+        return offset;
     }
     /**
      * Validates the data against the format
